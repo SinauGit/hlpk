@@ -5,7 +5,7 @@
         <field name="model">helpdesk.ticket</field>
         <field name="priority">10</field>
         <field name="arch" type="xml">
-            <kanban create="false" class="oe_background_grey">
+            <kanban create="false" class="oe_background_grey" default_group_by="partner_id">
                 <field name="id" />
                 <field name="name" />
                 <field name="employee_id" />
@@ -15,53 +15,57 @@
                 <field name="open_tickets" />
                 <field name="high_priority_tickets" />
                 <field name="assigned_tickets" />
+                <field name="partner_id" />
+                <field name="customer_ticket_count" />
                 <templates>
                     <t t-name="kanban-box">
-                        <div t-attf-class="oe_kanban_color_{{ (5 % 8) + 1 }} oe_kanban_card">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click">
                             <div class="row">
                                 <div class="col-12">
-                                    <h4 class="text-center">Dashboard</h4>
+                                    <h4 class="text-center">
+                                        <field name="partner_id"/>
+                                    </h4>
                                 </div>
                             </div>
                             <div class="container o_kanban_card_content">
                                 <div class="row mt8">
-                                    <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_unassigned=1">
-                                            <span><t t-esc="record.unassigned_tickets.value"/></span>
+                                    <div class="col-12 text-center">
+                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}">
+                                            <span><t t-esc="record.customer_ticket_count.value"/></span>
                                             <br/>
-                                            <span>Unassigned Tickets</span>
-                                        </a>
-                                    </div>
-                                    <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_unattended=1">
-                                            <span><t t-esc="record.unattended_tickets.value"/></span>
-                                            <br/>
-                                            <span>Unattended Tickets</span>
+                                            <span>Total Tickets</span>
                                         </a>
                                     </div>
                                 </div>
                                 <div class="row mt8">
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_open=1">
-                                            <span><t t-esc="record.open_tickets.value"/></span>
+                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_unassigned=1">
+                                            <span><t t-esc="record.unassigned_tickets.value"/></span>
                                             <br/>
-                                            <span>Open Tickets</span>
+                                            <span>Unassigned</span>
                                         </a>
                                     </div>
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_high_priority=1">
-                                            <span><t t-esc="record.high_priority_tickets.value"/></span>
+                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_unattended=1">
+                                            <span><t t-esc="record.unattended_tickets.value"/></span>
                                             <br/>
-                                            <span>High Priority</span>
+                                            <span>Unattended</span>
                                         </a>
                                     </div>
                                 </div>
-                                <div class="row mt8 mb8">
-                                    <div class="col-12 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_mytickets=1">
-                                            <span><t t-esc="record.assigned_tickets.value"/></span>
+                                <div class="row mt8">
+                                    <div class="col-6 text-center">
+                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_open=1">
+                                            <span><t t-esc="record.open_tickets.value"/></span>
                                             <br/>
-                                            <span>My Tickets</span>
+                                            <span>Open</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_high_priority=1">
+                                            <span><t t-esc="record.high_priority_tickets.value"/></span>
+                                            <br/>
+                                            <span>High Priority</span>
                                         </a>
                                     </div>
                                 </div>

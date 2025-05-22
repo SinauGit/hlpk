@@ -97,4 +97,18 @@
         action="helpdesk_ticket_stage_action"
         sequence="25"
     />
+    <record id="customer_pic_action" model="ir.actions.act_window">
+        <field name="name">Customer PICs</field>
+        <field name="res_model">customer.pic</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="customer_pic_menu"
+        name="Customer PICs"
+        parent="helpdesk_ticket_config_main_menu"
+        action="customer_pic_action"
+        sequence="30"
+    />
+
 </odoo> 

@@ -55,6 +55,22 @@ class HelpdeskTicket(models.Model):
     high_priority_tickets = fields.Integer(
         compute="_compute_dashboard_counts"
     )
+    
+    # Dashboard fields grouped by customer
+    customer_ticket_count = fields.Integer(
+        compute="_compute_customer_dashboard"
+    )
+    
+    @api.depends("partner_id")
+    def _compute_customer_dashboard(self):
+        for record in self:
+            # Group tickets by customer for dashboard
+            if record.partner_id:
+                record.customer_ticket_count = self.search_count([
+                    ('partner_id', '=', record.partner_id.id)
+                ])
+            else:
+                record.customer_ticket_count = 0
 
     @api.depends("stage_id", "employee_id", "unattended", "closed", "priority")
     def _compute_dashboard_counts(self):
@@ -85,14 +101,19 @@ class HelpdeskTicket(models.Model):
             ])
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
-    internal_number = fields.Char(string="Ticket Internal")
     name = fields.Char(string="Title/Issue", required=True)
+    number_internal = fields.Char(string="Ticket Internal", required=True)
     description = fields.Html(required=True, sanitize_style=True)
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
-        string="Assigned",
+        string="Main Assigned Employee",
         tracking=True,
         index=True,
+    )
+    assigned_employee_ids = fields.Many2many(
+        comodel_name="hr.employee",
+        string="Assigned Employees",
+        tracking=True,
     )
     stage_id = fields.Many2one(
         comodel_name="helpdesk.ticket.stage",
@@ -163,6 +184,10 @@ class HelpdeskTicket(models.Model):
     tsr_file = fields.Binary(string="Upload TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
+    # Time tracking fields
+    time_start = fields.Float(string="Start Time", copy=False)
+    time_end = fields.Float(string="End Time", copy=False)
+    
     # Compute field for due date display
     is_due_date_passed = fields.Boolean(
         string="Is Due Date Passed",
@@ -198,13 +223,47 @@ class HelpdeskTicket(models.Model):
         # Mendapatkan employee terkait user saat ini
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
         if employee:
-            self.write({"employee_id": employee.id})
+            self.write({
+                "employee_id": employee.id,
+                "assigned_employee_ids": [(4, employee.id, 0)]
+            })
+
+    @api.onchange("partner_id")
+    def _onchange_partner_id(self):
+        if self.partner_id:
+            
+            # Cari PIC untuk customer ini
+            pic = self.env['customer.pic'].search([
+                ('partner_id', '=', self.partner_id.id),
+                ('company_id', 'in', [False, self.company_id.id]),
+                ('active', '=', True)
+            ], limit=1)
+            
+            if pic and pic.employee_ids:
+                # Set assigned employees dari PIC
+                self.assigned_employee_ids = [(6, 0, pic.employee_ids.ids)]
+                # Set employee utama (yang pertama)
+                if not self.employee_id and pic.employee_ids:
+                    self.employee_id = pic.employee_ids[0].id
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             vals.update(self._prepare_ticket_number(vals))
             if not vals.get("employee_id"):
                 vals.update({"assigned_date": fields.Datetime.now()})
+            
+            # Jika ada partner_id dan tidak ada assigned_employee_ids, coba cari PIC
+            if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
+                pic = self.env['customer.pic'].search([
+                    ('partner_id', '=', vals.get('partner_id')),
+                    ('active', '=', True)
+                ], limit=1)
+                if pic and pic.employee_ids:
+                    vals['assigned_employee_ids'] = [(6, 0, pic.employee_ids.ids)]
+                    # Set employee utama jika belum ada
+                    if not vals.get('employee_id') and pic.employee_ids:
+                        vals['employee_id'] = pic.employee_ids[0].id
             
         return super().create(vals_list)
 
@@ -227,6 +286,19 @@ class HelpdeskTicket(models.Model):
                 stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
                 if stage.closed and not ticket.closed_date:
                     vals["closed_date"] = now
+                    
+                    # Saat ticket ditutup, simpan waktu selesai
+                    if not ticket.time_end and not vals.get('time_end'):
+                        current_time = datetime.now().hour + (datetime.now().minute / 60.0)
+                        vals['time_end'] = current_time
+            
+            # Saat tiket dibuka pertama kali, catat waktu mulai
+            if ticket.unattended and vals.get('stage_id'):
+                new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
+                if not new_stage.unattended and not ticket.time_start and not vals.get('time_start'):
+                    current_time = datetime.now().hour + (datetime.now().minute / 60.0)
+                    vals['time_start'] = current_time
+                    
         return super().write(vals)
 
     def _prepare_ticket_number(self, values):
