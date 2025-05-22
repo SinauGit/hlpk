@@ -4,28 +4,12 @@
         <field name="name">customer.pic.tree</field>
         <field name="model">customer.pic</field>
         <field name="arch" type="xml">
-            <tree>
+            <tree editable="top">
                 <field name="partner_id" />
                 <field name="employee_ids" widget="many2many_tags" />
+                <field name="company_id" groups="base.group_multi_company" />
                 <field name="active" widget="boolean_toggle" />
             </tree>
-        </field>
-    </record>
-
-    <record id="customer_pic_view_form" model="ir.ui.view">
-        <field name="name">customer.pic.form</field>
-        <field name="model">customer.pic</field>
-        <field name="arch" type="xml">
-            <form>
-                <sheet>
-                    <group>
-                        <field name="partner_id" />
-                        <field name="employee_ids" widget="many2many_tags" />
-                        <field name="active" widget="boolean_toggle" />
-                        <field name="company_id" groups="base.group_multi_company" />
-                    </group>
-                </sheet>
-            </form>
         </field>
     </record>
 
@@ -43,7 +27,7 @@
     <record id="customer_pic_action" model="ir.actions.act_window">
         <field name="name">Customer PICs</field>
         <field name="res_model">customer.pic</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree</field>
     </record>
 
     <menuitem

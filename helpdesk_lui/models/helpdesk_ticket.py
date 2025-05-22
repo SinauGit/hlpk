@@ -63,14 +63,23 @@ class HelpdeskTicket(models.Model):
     
     @api.depends("partner_id")
     def _compute_customer_dashboard(self):
-        for record in self:
-            # Group tickets by customer for dashboard
-            if record.partner_id:
-                record.customer_ticket_count = self.search_count([
-                    ('partner_id', '=', record.partner_id.id)
+        # Gunakan aggregate per customer untuk menghindari duplikasi
+        tickets_by_partner = {}
+        domain = [('active', '=', True)]
+        
+        for ticket in self:
+            if ticket.partner_id and ticket.partner_id.id not in tickets_by_partner:
+                # Hitung total tiket per customer
+                tickets_by_partner[ticket.partner_id.id] = self.search_count([
+                    ('partner_id', '=', ticket.partner_id.id),
+                    ('active', '=', True)
                 ])
+            
+            # Set nilai customer_ticket_count dari cache atau hitung jika belum ada
+            if ticket.partner_id:
+                ticket.customer_ticket_count = tickets_by_partner.get(ticket.partner_id.id, 0)
             else:
-                record.customer_ticket_count = 0
+                ticket.customer_ticket_count = 0
 
     @api.depends("stage_id", "employee_id", "unattended", "closed", "priority")
     def _compute_dashboard_counts(self):
@@ -310,4 +319,17 @@ class HelpdeskTicket(models.Model):
     def action_duplicate_tickets(self):
         for ticket in self:
             ticket.copy()
-        return True 
+        return True
+        
+    def action_view_ticket(self):
+        """Membuka tampilan tiket dari dashboard dengan filter yang sesuai."""
+        self.ensure_one()
+        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action').read()[0]
+        
+        # Context dikirim dari button di kanban view
+        context = self.env.context.copy()
+        
+        # Update context di action
+        action['context'] = context
+        
+        return action 

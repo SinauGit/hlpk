@@ -5,7 +5,9 @@
         <field name="model">helpdesk.ticket</field>
         <field name="priority">10</field>
         <field name="arch" type="xml">
-            <kanban create="false" class="oe_background_grey" default_group_by="partner_id">
+            <kanban create="false" class="oe_background_grey o_helpdesk_dashboard_kanban" 
+                    default_group_by="partner_id" 
+                    read_group_field_attributes="partner_id">
                 <field name="id" />
                 <field name="name" />
                 <field name="employee_id" />
@@ -19,54 +21,64 @@
                 <field name="customer_ticket_count" />
                 <templates>
                     <t t-name="kanban-box">
-                        <div t-attf-class="oe_kanban_card oe_kanban_global_click">
-                            <div class="row">
-                                <div class="col-12">
-                                    <h4 class="text-center">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click o_helpdesk_dashboard_card">
+                            <div class="o_helpdesk_card_header">
+                                <div class="o_helpdesk_customer_name">
+                                    <h3 class="text-center">
                                         <field name="partner_id"/>
-                                    </h4>
+                                    </h3>
                                 </div>
                             </div>
-                            <div class="container o_kanban_card_content">
-                                <div class="row mt8">
+                            <div class="container o_kanban_card_content mt-3">
+                                <div class="row">
                                     <div class="col-12 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}">
-                                            <span><t t-esc="record.customer_ticket_count.value"/></span>
-                                            <br/>
-                                            <span>Total Tickets</span>
-                                        </a>
+                                        <button class="btn btn-primary o_helpdesk_dashboard_button mb-2" type="object" 
+                                            name="action_view_ticket" context="{'search_default_partner_id': partner_id}">
+                                            <div class="o_helpdesk_count">
+                                                <span class="o_helpdesk_count_value"><t t-esc="record.customer_ticket_count.value"/></span>
+                                            </div>
+                                            <div class="o_helpdesk_count_label">Total Tickets</div>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="row mt8">
+                                <div class="row mt-2">
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_unassigned=1">
-                                            <span><t t-esc="record.unassigned_tickets.value"/></span>
-                                            <br/>
-                                            <span>Unassigned</span>
-                                        </a>
+                                        <button class="btn btn-info o_helpdesk_dashboard_button" type="object" 
+                                            name="action_view_ticket" context="{'search_default_partner_id': partner_id, 'search_default_unassigned': 1}">
+                                            <div class="o_helpdesk_count">
+                                                <span class="o_helpdesk_count_value"><t t-esc="record.unassigned_tickets.value"/></span>
+                                            </div>
+                                            <div class="o_helpdesk_count_label">Unassigned</div>
+                                        </button>
                                     </div>
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_unattended=1">
-                                            <span><t t-esc="record.unattended_tickets.value"/></span>
-                                            <br/>
-                                            <span>Unattended</span>
-                                        </a>
+                                        <button class="btn btn-warning o_helpdesk_dashboard_button" type="object" 
+                                            name="action_view_ticket" context="{'search_default_partner_id': partner_id, 'search_default_unattended': 1}">
+                                            <div class="o_helpdesk_count">
+                                                <span class="o_helpdesk_count_value"><t t-esc="record.unattended_tickets.value"/></span>
+                                            </div>
+                                            <div class="o_helpdesk_count_label">Unattended</div>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="row mt8">
+                                <div class="row mt-2 mb-2">
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_open=1">
-                                            <span><t t-esc="record.open_tickets.value"/></span>
-                                            <br/>
-                                            <span>Open</span>
-                                        </a>
+                                        <button class="btn btn-success o_helpdesk_dashboard_button" type="object" 
+                                            name="action_view_ticket" context="{'search_default_partner_id': partner_id, 'search_default_open': 1}">
+                                            <div class="o_helpdesk_count">
+                                                <span class="o_helpdesk_count_value"><t t-esc="record.open_tickets.value"/></span>
+                                            </div>
+                                            <div class="o_helpdesk_count_label">Open</div>
+                                        </button>
                                     </div>
                                     <div class="col-6 text-center">
-                                        <a t-attf-href="#action=#{helpdesk_ticket_action}&amp;menu_id=#{helpdesk_ticket_menu}&amp;search_default_partner_id=#{record.partner_id.raw_value}&amp;search_default_high_priority=1">
-                                            <span><t t-esc="record.high_priority_tickets.value"/></span>
-                                            <br/>
-                                            <span>High Priority</span>
-                                        </a>
+                                        <button class="btn btn-danger o_helpdesk_dashboard_button" type="object" 
+                                            name="action_view_ticket" context="{'search_default_partner_id': partner_id, 'search_default_high_priority': 1}">
+                                            <div class="o_helpdesk_count">
+                                                <span class="o_helpdesk_count_value"><t t-esc="record.high_priority_tickets.value"/></span>
+                                            </div>
+                                            <div class="o_helpdesk_count_label">High Priority</div>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

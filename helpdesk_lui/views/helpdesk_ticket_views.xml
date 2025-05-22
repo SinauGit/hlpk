@@ -93,7 +93,7 @@
                 <field name="partner_id" optional="show" />
                 <field name="employee_id" optional="show" />
                 <field name="assigned_employee_ids" widget="many2many_tags" optional="show" />
-                <field name="category_id" options="{'color_field': 'color'}" optional="show" />
+                <field name="category_id" options="{'color_field': 'html_color'}" optional="show" />
                 <field name="description" optional="show" />
                 <field name="priority" optional="show" widget="priority" />
                 <field name="is_due_date_passed" invisible="1"/>
