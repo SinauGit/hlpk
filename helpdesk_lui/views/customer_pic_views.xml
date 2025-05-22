@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="customer_pic_view_tree" model="ir.ui.view">
+        <field name="name">customer.pic.tree</field>
+        <field name="model">customer.pic</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="partner_id" />
+                <field name="employee_ids" widget="many2many_tags" />
+                <field name="active" widget="boolean_toggle" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="customer_pic_view_form" model="ir.ui.view">
+        <field name="name">customer.pic.form</field>
+        <field name="model">customer.pic</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="partner_id" />
+                        <field name="employee_ids" widget="many2many_tags" />
+                        <field name="active" widget="boolean_toggle" />
+                        <field name="company_id" groups="base.group_multi_company" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="customer_pic_view_search" model="ir.ui.view">
+        <field name="name">customer.pic.search</field>
+        <field name="model">customer.pic</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id" />
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]" />
+            </search>
+        </field>
+    </record>
+
+    <record id="customer_pic_action" model="ir.actions.act_window">
+        <field name="name">Customer PICs</field>
+        <field name="res_model">customer.pic</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="customer_pic_menu"
+        name="Customer PICs"
+        parent="helpdesk_ticket_config_main_menu"
+        action="customer_pic_action"
+        sequence="20"
+    />
+</odoo> 

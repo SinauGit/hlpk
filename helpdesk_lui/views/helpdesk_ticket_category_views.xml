@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="helpdesk_ticket_category_view_tree" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.category.tree</field>
+        <field name="model">helpdesk.ticket.category</field>
+        <field name="arch" type="xml">
+            <tree string="Helpdesk categories" default_order="sequence,id">
+                <field name="sequence" widget="handle" />
+                <field name="name" />
+                <field name="color" widget="color" />
+                <field name="active" widget="boolean_toggle" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_category_view_form" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.category.form</field>
+        <field name="model">helpdesk.ticket.category</field>
+        <field name="arch" type="xml">
+            <form string="Helpdesk Category">
+                <sheet>
+                    <group>
+                        <field name="name" />
+                        <field name="color" widget="color" />
+                        <field name="company_id" groups="base.group_multi_company" />
+                        <field name="active" widget="boolean_toggle" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_category_view_search" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.category.search</field>
+        <field name="model">helpdesk.ticket.category</field>
+        <field name="arch" type="xml">
+            <search string="Search Helpdesk Category">
+                <field name="name" />
+                <filter
+                    string="Archived"
+                    domain="[('active', '=', False)]"
+                    name="inactive"
+                />
+            </search>
+        </field>
+    </record>
+</odoo> 

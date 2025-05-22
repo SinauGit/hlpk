@@ -1,0 +1,240 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<odoo>
+    <record id="helpdesk_ticket_view_search" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.view.search</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <search>
+                <field
+                    string="Ticket"
+                    name="number"
+                    filter_domain="['|',('number', 'ilike', self),('name', 'ilike', self)]"
+                />
+                <field name="employee_id" />
+                <field name="name" />
+                <field name="partner_id" />
+                <field name="stage_id" />
+                <filter
+                    string="Unassigned"
+                    name="unassigned"
+                    domain="[('employee_id','=',False)]"
+                />
+                <filter string="Open" name="open" domain="[('closed', '=', False )]" />
+                <filter
+                    string="Unattended"
+                    name="unattended"
+                    domain="[('unattended', '=', True )]"
+                />
+                <filter
+                    string="High Priority"
+                    name="high_priority"
+                    domain="[('priority','=','3')]"
+                />
+                <separator />
+                <filter
+                    string="Archived"
+                    name="archived"
+                    domain="[('active','=',False)]"
+                />
+                <separator />
+                <filter
+                    string="My Tickets"
+                    name="mytickets"
+                    domain="[('employee_id.user_id','=',uid)]"
+                />
+                <separator />
+                <filter
+                    name="last_week"
+                    string="Last Week"
+                    domain="[('create_date','&gt;', (context_today() - datetime.timedelta(weeks=1)).strftime('%%Y-%%m-%%d') )]"
+                />
+                <group expand="0" string="Group By">
+                    <filter
+                        string="Customer"
+                        name="partner"
+                        context="{'group_by': 'partner_id'}"
+                    />
+                    <filter
+                        string="Employee"
+                        name="employee"
+                        context="{'group_by': 'employee_id'}"
+                    />
+                    <filter
+                        string="Category"
+                        name="category"
+                        context="{'group_by': 'category_id'}"
+                    />
+                    <filter string="Stage" name="stage" context="{'group_by': 'stage_id'}" />
+                    <filter
+                        string="Create Date"
+                        name="creation_date"
+                        context="{'group_by': 'create_date'}"
+                    />
+                    <filter
+                        string="Last Stage Update"
+                        name="last_stage_update"
+                        context="{'group_by': 'last_stage_update'}"
+                    />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="ticket_view_tree" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.view.tree</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <tree editable="top">
+                <field name="sequence" invisible="1" widget="handle" />
+                <field name="number" decoration-bf="1" readonly="1"/>
+                <field name="internal_number" optional="show" />
+                <field name="name" optional="show" />
+                <field name="partner_id" optional="show" />
+                <field name="employee_id" optional="show" />
+                <field name="category_id" optional="show" />
+                <field name="description" optional="show" />
+                <field name="priority" optional="show" widget="priority" />
+                <field name="is_due_date_passed" invisible="1"/>
+                <field name="due_date" optional="show" decoration-danger="is_due_date_passed"/>
+                <field name="is_stage_done" invisible="1"/>
+                <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary" attrs="{'invisible': [('is_stage_done', '=', False)]}"/>
+                <field name="tsr_filename" invisible="1"/>
+                <field name="stage_id" optional="show" />
+                <field name="create_date" widget="remaining_days" readonly="1" optional="show" />
+                <field name="last_stage_update" widget="remaining_days" optional="show"  readonly="1"/>
+                <field name="closed_date" optional="show" readonly="1" />
+                <field name="unattended" invisible="1" />
+                <field name="closed" invisible="1" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_helpdesk_ticket_kanban" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.kanban</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="priority" eval="100" />
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" default_group_by="stage_id">
+                <field name="number" />
+                <field name="active" />
+                <field name="name" />
+                <field name="partner_id" />
+                <field name="employee_id" />
+                <field name="sequence" />
+                <field name="color" />
+                <field name="stage_id" />
+                <field name="priority" widget="priority" />
+                <field name="assigned_date" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div
+                            t-attf-class="oe_kanban_color_#{kanban_getcolor(record.color.raw_value)} oe_kanban_content"
+                        >
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <field name="name" />
+                                    <field name="number" />
+                                </div>
+                                <div
+                                    class="o_dropdown_kanban dropdown"
+                                    t-if="!selection_mode"
+                                    groups="base.group_user"
+                                >
+                                    <a
+                                        role="button"
+                                        class="dropdown-toggle o-no-caret btn"
+                                        data-toggle="dropdown"
+                                        data-display="static"
+                                        href="#"
+                                        aria-label="Dropdown menu"
+                                        title="Dropdown menu"
+                                    >
+                                        <span class="fa fa-ellipsis-v" />
+                                    </a>
+                                    <div class="dropdown-menu" role="menu">
+                                        <a
+                                            t-if="widget.editable"
+                                            role="menuitem"
+                                            type="edit"
+                                            class="dropdown-item"
+                                        >Edit</a>
+                                        <a
+                                            t-if="widget.deletable"
+                                            role="menuitem"
+                                            type="delete"
+                                            class="dropdown-item"
+                                        >Delete</a>
+                                        <div
+                                            role="separator"
+                                            class="dropdown-divider"
+                                        />
+                                        <ul
+                                            class="oe_kanban_colorpicker"
+                                            data-field="color"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div><strong>Due Date: </strong><field name="due_date"/></div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="priority" widget="priority" />
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <field
+                                        name="kanban_state"
+                                        widget="state_selection"
+                                    />
+                                    <img
+                                        t-att-src="kanban_image('hr.employee', 'image_128', record.employee_id.raw_value)"
+                                        t-att-title="record.employee_id.value"
+                                        width="24"
+                                        height="24"
+                                        class="oe_kanban_avatar o_image_24_cover float-right"
+                                        t-att-alt="record.employee_id.value"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_views_pivot" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.view.pivot</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <pivot string="Pivot Analysis" disable_linking="True">
+                <field name="category_id" type="row" />
+                <field name="assigned_date" type="col" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_views_graph" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.view.graph</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <graph string="Tickets Analysis" type="bar" sample="1">
+                <field name="stage_id"/>
+                <field name="priority"/>
+                <field name="category_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_duplicate_ticket" model="ir.actions.server">
+        <field name="name">Duplicate</field>
+        <field name="model_id" ref="model_helpdesk_ticket" />
+        <field name="binding_model_id" ref="helpdesk_lui.model_helpdesk_ticket" />
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+            action = model.action_duplicate_tickets()
+        </field>
+    </record>
+</odoo> 

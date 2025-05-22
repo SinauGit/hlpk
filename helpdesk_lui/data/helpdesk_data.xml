@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record id="helpdesk_ticket_sequence" model="ir.sequence">
+        <field name="name">Helpdesk Ticket</field>
+        <field name="code">helpdesk.ticket.sequence</field>
+        <field name="prefix">HLU</field>
+        <field name="padding">5</field>
+    </record>
+
+    <!-- Default stages -->
+    <record id="helpdesk_ticket_stage_new" model="helpdesk.ticket.stage">
+        <field name="name">New</field>
+        <field name="sequence">1</field>
+        <field name="unattended">True</field>
+        <field name="closed">False</field>
+    </record>
+
+    <record id="helpdesk_ticket_stage_in_progress" model="helpdesk.ticket.stage">
+        <field name="name">In Progress</field>
+        <field name="sequence">2</field>
+        <field name="unattended">False</field>
+        <field name="closed">False</field>
+    </record>
+
+    <record id="helpdesk_ticket_stage_done" model="helpdesk.ticket.stage">
+        <field name="name">Done</field>
+        <field name="sequence">3</field>
+        <field name="unattended">False</field>
+        <field name="closed">True</field>
+    </record>
+
+    <record id="helpdesk_ticket_stage_cancelled" model="helpdesk.ticket.stage">
+        <field name="name">Cancelled</field>
+        <field name="sequence">4</field>
+        <field name="unattended">False</field>
+        <field name="closed">True</field>
+        <field name="fold">True</field>
+    </record>
+</odoo> 
