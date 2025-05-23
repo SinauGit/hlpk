@@ -4,8 +4,6 @@
     "name": "Helpdesk LUI",
     "summary": "Custom Helpdesk Module for LUI",
     "version": "16.0.1.0.0",
-    "category": "Helpdesk",
-    "author": "Fixation",
     "license": "AGPL-3",
     "website": "",
     "depends": ["base", "hr"],

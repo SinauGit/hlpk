@@ -15,8 +15,7 @@ class HelpdeskCategory(models.Model):
         required=True,
         translate=True,
     )
-    color = fields.Integer(string="Color Index", default=0)
-    html_color = fields.Char(string="Color", help="Color code (hexa decimal)")
+    color = fields.Integer(string="Color Index")
     company_id = fields.Many2one(
         comodel_name="res.company",
         string="Company",

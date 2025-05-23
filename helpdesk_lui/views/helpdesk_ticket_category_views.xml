@@ -7,8 +7,7 @@
             <tree string="Helpdesk categories" default_order="sequence,id" editable="top">
                 <field name="sequence" widget="handle" />
                 <field name="name" />
-                <field name="color" widget="color_index" />
-                <field name="html_color" widget="color" />
+                <field name="color" widget="color_picker" invisible="1" />
                 <field name="company_id" groups="base.group_multi_company" />
                 <field name="active" widget="boolean_toggle" />
             </tree>

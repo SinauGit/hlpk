@@ -6,14 +6,14 @@
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">helpdesk.ticket</field>
         <field name="view_mode">kanban</field>
-        <field name="view_id" ref="helpdesk_dashboard_view_kanban"/>
+        <!-- <field name="view_id" ref="helpdesk_dashboard_view_kanban"/> -->
         <field name="context">{'create': False}</field>
     </record>
     <record id="helpdesk_ticket_action" model="ir.actions.act_window">
         <field name="name">Tickets</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">helpdesk.ticket</field>
-        <field name="view_mode">tree,kanban,pivot</field>
+        <field name="view_mode">tree</field>
     </record>
     <record id="helpdesk_ticket_reporting_action" model="ir.actions.act_window">
         <field name="name">Reporting</field>
@@ -76,13 +76,13 @@
         sequence="35"
         groups="group_helpdesk_manager"
     />
-    <menuitem
+    <!-- <menuitem
         id="helpdesk_config_settings_menu"
         name="Settings"
         parent="helpdesk_ticket_config_main_menu"
         action="action_helpdesk_lui_config_settings"
         sequence="1"
-    />
+    /> -->
     <menuitem
         id="helpdesk_ticket_category_menu"
         name="Categories"

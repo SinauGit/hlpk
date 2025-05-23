@@ -12,12 +12,6 @@ class HelpdeskTicketStage(models.Model):
     active = fields.Boolean(default=True)
     unattended = fields.Boolean()
     closed = fields.Boolean()
-    fold = fields.Boolean(
-        string="Folded in Kanban",
-        help="This stage is folded in the kanban view "
-        "when there are no records in that stage "
-        "to display.",
-    )
     company_id = fields.Many2one(
         comodel_name="res.company",
         string="Company",

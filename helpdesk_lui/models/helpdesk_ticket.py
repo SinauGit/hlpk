@@ -10,16 +10,29 @@ class HelpdeskTicket(models.Model):
     _rec_names_search = ["number", "name"]
     _order = "priority desc, sequence, number desc, id desc"
 
+    @api.model
+    def _default_stage_id(self):
+        """Mendapatkan stage 'New' sebagai nilai default."""
+        stage = self.env["helpdesk.ticket.stage"].search([("name", "=", "New")], limit=1)
+        return stage.id if stage else False
+
     @api.depends("stage_id")
     def _compute_stage_id(self):
         for ticket in self:
             if not ticket.stage_id:
-                # Cari stage pertama
-                first_stage = self.env["helpdesk.ticket.stage"].search(
-                    [("company_id", "in", [False, ticket.company_id.id])], limit=1
+                # Cari stage "New"
+                new_stage = self.env["helpdesk.ticket.stage"].search(
+                    [('name', '=', 'New'), ("company_id", "in", [False, ticket.company_id.id])], limit=1
                 )
-                if first_stage:
-                    ticket.stage_id = first_stage.id
+                if new_stage:
+                    ticket.stage_id = new_stage.id
+                else:
+                    # Fallback ke stage pertama jika tidak ada yang namanya "New"
+                    first_stage = self.env["helpdesk.ticket.stage"].search(
+                        [("company_id", "in", [False, ticket.company_id.id])], limit=1
+                    )
+                    if first_stage:
+                        ticket.stage_id = first_stage.id
 
     @api.constrains('name')
     def _check_name_duplicate(self):
@@ -65,48 +78,89 @@ class HelpdeskTicket(models.Model):
     def _compute_customer_dashboard(self):
         # Gunakan aggregate per customer untuk menghindari duplikasi
         tickets_by_partner = {}
-        domain = [('active', '=', True)]
+        
+        # Cari semua partner_id yang unik dari tiket aktif
+        active_partners = self.env['helpdesk.ticket'].search([
+            ('active', '=', True),
+            ('partner_id', '!=', False)
+        ]).mapped('partner_id.id')
+        
+        # Hanya tiket pertama untuk tiap partner yang diproses
+        processed_partners = set()
         
         for ticket in self:
-            if ticket.partner_id and ticket.partner_id.id not in tickets_by_partner:
-                # Hitung total tiket per customer
-                tickets_by_partner[ticket.partner_id.id] = self.search_count([
-                    ('partner_id', '=', ticket.partner_id.id),
-                    ('active', '=', True)
-                ])
-            
-            # Set nilai customer_ticket_count dari cache atau hitung jika belum ada
-            if ticket.partner_id:
-                ticket.customer_ticket_count = tickets_by_partner.get(ticket.partner_id.id, 0)
-            else:
+            if not ticket.partner_id:
                 ticket.customer_ticket_count = 0
+                continue
+                
+            partner_id = ticket.partner_id.id
+            
+            # Skip jika partner sudah diproses atau partner tidak aktif
+            if partner_id in processed_partners or partner_id not in active_partners:
+                ticket.customer_ticket_count = 0
+                continue
+                
+            # Tandai partner ini sudah diproses
+            processed_partners.add(partner_id)
+            
+            # Hitung total tiket untuk partner ini
+            ticket.customer_ticket_count = self.search_count([
+                ('partner_id', '=', partner_id),
+                ('active', '=', True)
+            ])
 
-    @api.depends("stage_id", "employee_id", "unattended", "closed", "priority")
+    @api.depends("partner_id", "stage_id", "employee_id", "unattended", "closed", "priority")
     def _compute_dashboard_counts(self):
         # Empty recordset
         for record in self:
+            partner_id = record.partner_id.id if record.partner_id else False
+            
+            # Jika tidak ada partner, set semua nilai ke 0
+            if not partner_id:
+                record.unassigned_tickets = 0
+                record.unattended_tickets = 0
+                record.assigned_tickets = 0
+                record.open_tickets = 0
+                record.high_priority_tickets = 0
+                continue
+            
+            # Filter semua query dengan partner_id untuk mendapatkan hanya tiket-tiket dari customer ini
             # Count unassigned tickets
             record.unassigned_tickets = self.search_count([
-                ('employee_id', '=', False)
+                ('partner_id', '=', partner_id),
+                ('employee_id', '=', False),
+                ('active', '=', True)
             ])
+            
             # Count unattended tickets
             record.unattended_tickets = self.search_count([
-                ('unattended', '=', True)
+                ('partner_id', '=', partner_id),
+                ('unattended', '=', True),
+                ('active', '=', True)
             ])
-            # Count tickets assigned to current user
+            
+            # Count tickets assigned to current user (jika user adalah employee)
             if self.env.user.employee_ids:
                 record.assigned_tickets = self.search_count([
-                    ('employee_id', 'in', self.env.user.employee_ids.ids)
+                    ('partner_id', '=', partner_id),
+                    ('employee_id', 'in', self.env.user.employee_ids.ids),
+                    ('active', '=', True)
                 ])
             else:
                 record.assigned_tickets = 0
+                
             # Count open tickets
             record.open_tickets = self.search_count([
-                ('closed', '=', False)
+                ('partner_id', '=', partner_id),
+                ('closed', '=', False),
+                ('active', '=', True)
             ])
+            
             # Count high priority tickets
             record.high_priority_tickets = self.search_count([
-                ('priority', '=', '3')
+                ('partner_id', '=', partner_id),
+                ('priority', '=', '3'),
+                ('active', '=', True)
             ])
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
@@ -134,6 +188,7 @@ class HelpdeskTicket(models.Model):
         tracking=True,
         copy=False,
         index=True,
+        default=_default_stage_id,
     )
     partner_id = fields.Many2one(
         comodel_name="res.partner",
@@ -193,9 +248,9 @@ class HelpdeskTicket(models.Model):
     tsr_file = fields.Binary(string="Upload TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
-    # Time tracking fields
-    time_start = fields.Float(string="Start Time", copy=False)
-    time_end = fields.Float(string="End Time", copy=False)
+    # Time tracking fields - diubah dari float menjadi datetime
+    time_start = fields.Datetime(string="Start Time", copy=False) 
+    time_end = fields.Datetime(string="End Time", copy=False)
     
     # Compute field for due date display
     is_due_date_passed = fields.Boolean(
@@ -298,15 +353,13 @@ class HelpdeskTicket(models.Model):
                     
                     # Saat ticket ditutup, simpan waktu selesai
                     if not ticket.time_end and not vals.get('time_end'):
-                        current_time = datetime.now().hour + (datetime.now().minute / 60.0)
-                        vals['time_end'] = current_time
+                        vals['time_end'] = now
             
             # Saat tiket dibuka pertama kali, catat waktu mulai
             if ticket.unattended and vals.get('stage_id'):
                 new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
                 if not new_stage.unattended and not ticket.time_start and not vals.get('time_start'):
-                    current_time = datetime.now().hour + (datetime.now().minute / 60.0)
-                    vals['time_start'] = current_time
+                    vals['time_start'] = now
                     
         return super().write(vals)
 

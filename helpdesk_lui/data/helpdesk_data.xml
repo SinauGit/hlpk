@@ -34,6 +34,19 @@
         <field name="sequence">4</field>
         <field name="unattended">False</field>
         <field name="closed">True</field>
-        <field name="fold">True</field>
+    </record>
+    
+    <!-- Default categories with colors -->
+    <record id="helpdesk_ticket_category_technical" model="helpdesk.ticket.category">
+        <field name="name">Daily Check</field>
+        <field name="html_color">#F78B24</field>
+    </record>
+    <record id="helpdesk_ticket_category_functional" model="helpdesk.ticket.category">
+        <field name="name">Maintenance</field>
+        <field name="html_color">#F1C232</field>
+    </record>
+    <record id="helpdesk_ticket_category_hard" model="helpdesk.ticket.category">
+        <field name="name">Replacement</field>
+        <field name="html_color">#4C5A67</field>
     </record>
 </odoo> 

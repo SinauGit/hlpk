@@ -10,7 +10,6 @@
                 <field name="description" />
                 <field name="closed" />
                 <field name="unattended" />
-                <field name="fold" />
                 <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}" />
                 <field name="active" widget="boolean_toggle" />
             </tree>
