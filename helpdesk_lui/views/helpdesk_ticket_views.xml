@@ -81,32 +81,118 @@
         </field>
     </record>
 
+    <!-- <record id="helpdesk_ticket_view_form" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.view.form</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="is_stage_done" invisible="1"/>
+                <header>
+                    <field name="stage_id" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert" attrs="{'invisible': [('is_stage_done', '=', False)]}">
+                        <strong>Warning:</strong> This ticket is in 'Done' stage. You can only change the stage. 
+                        All other fields are readonly.
+                    </div>
+                    
+                    <div class="oe_title">
+                        <h1>
+                            <field name="number" readonly="1"/>
+                        </h1>
+                        <field name="name" placeholder="Ticket Title/Issue" 
+                               attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="partner_id" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="employee_id" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="assigned_employee_ids" widget="many2many_tags" 
+                                   attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="category_id" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="priority" widget="priority" 
+                                   attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                        </group>
+                        <group>
+                            <field name="due_date" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="time_start" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="time_end" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                            <field name="assigned_date" readonly="1"/>
+                            <field name="closed_date" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <group>
+                        <field name="description" attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                    </group>
+                    
+                    <notebook>
+                        <page string="TSR Upload" attrs="{'invisible': [('is_stage_done', '=', False)]}">
+                            <group>
+                                <field name="tsr_file" filename="tsr_filename" 
+                                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                                <field name="tsr_filename" invisible="1"/>
+                            </group>
+                        </page>
+                        <page string="Attachments">
+                            <field name="attachment_ids" attrs="{'readonly': [('is_stage_done', '=', True)]}">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="mimetype"/>
+                                    <field name="file_size"/>
+                                    <field name="create_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record> -->
+
     <record id="ticket_view_tree" model="ir.ui.view">
         <field name="name">helpdesk.ticket.view.tree</field>
         <field name="model">helpdesk.ticket</field>
         <field name="arch" type="xml">
+            <!-- <tree editable="top" edit="false" create="true" delete="true"> -->
             <tree editable="top">
                 <field name="sequence" invisible="1" widget="handle" />
-                <field name="number" decoration-bf="1" readonly="1"/>
-                <field name="number_internal" optional="show" />
-                <field name="name" optional="show" />
-                <field name="partner_id" optional="show" />
-                <field name="employee_id" invisible="1"/>
-                <field name="assigned_employee_ids" widget="many2many_tags" optional="show" />
-                <field name="category_id" options="{'color_field': 'html_color'}" optional="show" />
-                <field name="description" optional="show" />
-                <field name="priority" optional="show" widget="priority" />
-                <field name="is_due_date_passed" invisible="1"/>
-                <field name="due_date" optional="show" decoration-danger="is_due_date_passed"/>
                 <field name="is_stage_done" invisible="1"/>
-                <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary" attrs="{'invisible': [('is_stage_done', '=', False)]}"/>
+                <field name="number" decoration-bf="1" readonly="1"/>
+                <!-- <field name="number_internal" optional="show" /> -->
+                <field name="name" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="partner_id" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="employee_id" invisible="1"/>
+                <field name="assigned_employee_ids" widget="many2many_tags" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="category_id" options="{'color_field': 'html_color'}" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="description" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="priority" optional="show" widget="priority" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="is_due_date_passed" invisible="1"/>
+                <field name="due_date" optional="show" decoration-danger="is_due_date_passed" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary" 
+                       attrs="{'invisible': [('is_stage_done', '=', False)], 'readonly': [('is_stage_done', '=', True)]}"/>
                 <field name="tsr_filename" invisible="1"/>
-                <field name="time_start" optional="show" />
-                <field name="time_end" optional="show" />
-                <field name="stage_id" optional="show" />
-                <field name="create_date" widget="remaining_days" readonly="1" optional="show" />
-                <field name="last_stage_update" widget="remaining_days" optional="show" readonly="1"/>
-                <field name="closed_date" optional="show" readonly="1"/>
+                <field name="time_start" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="time_end" optional="show" 
+                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="stage_id" optional="show"/>
+                <field name="create_date" widget="remaining_days" readonly="1" optional="hide" />
+                <field name="last_stage_update" widget="remaining_days" optional="hide" readonly="1"/>
+                <field name="closed_date" optional="hide" readonly="1"/>
                 <field name="unattended" invisible="1" />
                 <field name="closed" invisible="1" />
             </tree>
@@ -133,19 +219,23 @@
                 <field name="assigned_date" />
                 <field name="time_start" />
                 <field name="time_end" />
+                <field name="is_stage_done" />
                 <templates>
                     <t t-name="kanban-box">
                         <div
-                            t-attf-class="oe_kanban_color_#{kanban_getcolor(record.color.raw_value)} oe_kanban_content"
+                            t-attf-class="oe_kanban_color_#{kanban_getcolor(record.color.raw_value)} oe_kanban_content #{record.is_stage_done.raw_value ? 'o_kanban_record_readonly' : ''}"
                         >
                             <div class="o_kanban_record_top">
                                 <div class="o_kanban_record_headings">
                                     <field name="name" />
                                     <field name="number" />
+                                    <t t-if="record.is_stage_done.raw_value">
+                                        <span class="badge badge-success">Done</span>
+                                    </t>
                                 </div>
                                 <div
                                     class="o_dropdown_kanban dropdown"
-                                    t-if="!selection_mode"
+                                    t-if="!selection_mode and !record.is_stage_done.raw_value"
                                     groups="base.group_user"
                                 >
                                     <a

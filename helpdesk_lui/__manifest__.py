@@ -6,7 +6,8 @@
     "version": "16.0.1.0.0",
     "license": "AGPL-3",
     "website": "",
-    "depends": ["base", "hr"],
+    # "depends": ["base", "hr"],
+    "depends": ["hr"],
     "data": [
         "security/helpdesk_security.xml",
         "security/ir.model.access.csv",

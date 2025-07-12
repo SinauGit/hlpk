@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models, tools
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
 
 
@@ -164,8 +164,8 @@ class HelpdeskTicket(models.Model):
             ])
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
-    name = fields.Char(string="Title/Issue", required=True)
-    number_internal = fields.Char(string="Ticket Internal", required=True)
+    name = fields.Char(string="Title/Issue", required=False)
+    # number_internal = fields.Char(string="Ticket Internal", required=True)
     description = fields.Html(required=True, sanitize_style=True)
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
@@ -249,7 +249,7 @@ class HelpdeskTicket(models.Model):
     tsr_filename = fields.Char("TSR Filename")
     
     # Time tracking fields - diubah dari float menjadi datetime
-    time_start = fields.Datetime(string="Start Time", copy=False) 
+    time_start = fields.Datetime(string="Start Time", copy=False, default=fields.Datetime.now() ) 
     time_end = fields.Datetime(string="End Time", copy=False)
     
     # Compute field for due date display
@@ -277,6 +277,13 @@ class HelpdeskTicket(models.Model):
         for ticket in self:
             ticket.is_stage_done = ticket.stage_id and ticket.stage_id.name == 'Done'
 
+    def _check_done_stage_edit(self):
+        """Check if ticket is in Done stage and prevent editing"""
+        for ticket in self:
+            if ticket.stage_id and ticket.stage_id.name == 'Done':
+                raise UserError(_("Cannot edit ticket '%s' because it is in 'Done' stage. "
+                                "Please change the stage first if you need to make modifications.") % ticket.number)
+
     def name_get(self):
         res = []
         for rec in self:
@@ -284,6 +291,9 @@ class HelpdeskTicket(models.Model):
         return res
 
     def assign_to_me(self):
+        # Check if in Done stage
+        self._check_done_stage_edit()
+        
         # Mendapatkan employee terkait user saat ini
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
         if employee:
@@ -341,6 +351,26 @@ class HelpdeskTicket(models.Model):
         return res
 
     def write(self, vals):
+        # Check if any ticket is in Done stage before allowing write
+        # Exception: allow changing stage_id to move from Done to other stages
+        for ticket in self:
+            if ticket.stage_id and ticket.stage_id.name == 'Done':
+                # Allow changing stage_id to move from Done stage
+                if len(vals) == 1 and 'stage_id' in vals:
+                    # Check if new stage is not Done
+                    new_stage = self.env["helpdesk.ticket.stage"].browse(vals['stage_id'])
+                    if new_stage.name != 'Done':
+                        # Allow this change to move from Done to other stage
+                        pass
+                    else:
+                        # Prevent any other changes while in Done stage
+                        raise UserError(_("Cannot modify ticket '%s' because it is in 'Done' stage. "
+                                        "Please change the stage first if you need to make modifications.") % ticket.number)
+                else:
+                    # Prevent any other changes while in Done stage
+                    raise UserError(_("Cannot modify ticket '%s' because it is in 'Done' stage. "
+                                    "Please change the stage first if you need to make modifications.") % ticket.number)
+        
         for ticket in self:
             now = fields.Datetime.now()
             if vals.get("employee_id") and not ticket.employee_id:
@@ -370,6 +400,11 @@ class HelpdeskTicket(models.Model):
         return {"number": seq.next_by_code("helpdesk.ticket.sequence") or "/"}
         
     def action_duplicate_tickets(self):
+        # Check if any ticket is in Done stage
+        for ticket in self:
+            if ticket.stage_id and ticket.stage_id.name == 'Done':
+                raise UserError(_("Cannot duplicate ticket '%s' because it is in 'Done' stage.") % ticket.number)
+        
         for ticket in self:
             ticket.copy()
         return True
@@ -385,4 +420,12 @@ class HelpdeskTicket(models.Model):
         # Update context di action
         action['context'] = context
         
-        return action 
+        return action
+
+    def unlink(self):
+        # Check if any ticket is in Done stage before allowing deletion
+        for ticket in self:
+            if ticket.stage_id and ticket.stage_id.name == 'Done':
+                raise UserError(_("Cannot delete ticket '%s' because it is in 'Done' stage. "
+                                "Please change the stage first if you need to delete it.") % ticket.number)
+        return super().unlink()
