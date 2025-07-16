@@ -165,6 +165,18 @@ class HelpdeskTicket(models.Model):
         index=True,
     )
     
+    @api.depends()
+    def _compute_stage_id(self):
+        """Set default stage to New"""
+        for record in self:
+            if not record.stage_id:
+                new_stage = self.env["helpdesk.ticket.stage"].search([
+                    ("name", "=", "New"),
+                    ("company_id", "in", [False, record.company_id.id])
+                ], limit=1)
+                if new_stage:
+                    record.stage_id = new_stage.id
+    
     # MODIFIED: partner_id sekarang menggunakan domain dari customer_pic
     partner_id = fields.Many2one(
         comodel_name="res.partner",
@@ -172,6 +184,18 @@ class HelpdeskTicket(models.Model):
         # domain="[('customer_rank', '>', 0)]",
         # domain=lambda self: [('id', 'in', self.env['customer.pic'].search([('active', '=', True)]).mapped('partner_id.id'))]
     )
+
+    # New checkbox field
+    checkbox = fields.Boolean(string="Checkbox", default=False, compute="_compute_checkbox", store=True, readonly=False)
+    
+    @api.depends('stage_id', 'stage_id.name')
+    def _compute_checkbox(self):
+        """Auto set checkbox to True when stage is Done"""
+        for record in self:
+            if record.stage_id and record.stage_id.name == 'Done':
+                record.checkbox = True
+            else:
+                record.checkbox = False
 
     last_stage_update = fields.Datetime(default=fields.Datetime.now)
     assigned_date = fields.Datetime()
@@ -258,12 +282,12 @@ class HelpdeskTicket(models.Model):
         for ticket in self:
             ticket.is_stage_done = ticket.stage_id and ticket.stage_id.name == 'Done'
 
-    def _check_done_stage_edit(self):
-        """Check if ticket is in Done stage and prevent editing"""
-        for ticket in self:
-            if ticket.stage_id and ticket.stage_id.name == 'Done':
-                raise UserError(_("Cannot edit ticket '%s' because it is in 'Done' stage. "
-                                "Please change the stage first if you need to make modifications.") % ticket.number)
+    # def _check_checkbox_edit(self):
+    #     """Check if ticket checkbox is True and prevent editing"""
+    #     for ticket in self:
+    #         if ticket.checkbox:
+    #             raise UserError(_("Cannot edit ticket '%s' because checkbox is checked. "
+    #                             "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
 
     def name_get(self):
         res = []
@@ -272,8 +296,8 @@ class HelpdeskTicket(models.Model):
         return res
 
     def assign_to_me(self):
-        # Check if in Done stage
-        self._check_done_stage_edit()
+        # Check if checkbox is True
+        # self._check_checkbox_edit()
         
         # Mendapatkan employee terkait user saat ini
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
@@ -331,6 +355,15 @@ class HelpdeskTicket(models.Model):
             if not vals.get("employee_id"):
                 vals.update({"assigned_date": fields.Datetime.now()})
             
+            # Set default stage to New if not provided
+            if not vals.get('stage_id'):
+                new_stage = self.env["helpdesk.ticket.stage"].search([
+                    ("name", "=", "New"),
+                    ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
+                ], limit=1)
+                if new_stage:
+                    vals['stage_id'] = new_stage.id
+            
             # Jika ada partner_id dan tidak ada assigned_employee_ids, coba cari PIC
             if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
                 pic = self.env['customer.pic'].search([
@@ -359,27 +392,21 @@ class HelpdeskTicket(models.Model):
         return res
 
     def write(self, vals):
-        # Check if any ticket is in Done stage before allowing write
-        # Exception: allow changing stage_id to move from Done to other stages
-        for ticket in self:
-            if ticket.stage_id and ticket.stage_id.name == 'Done':
-                # Allow changing stage_id to move from Done stage
-                if len(vals) == 1 and 'stage_id' in vals:
-                    # Check if new stage is not Done
-                    new_stage = self.env["helpdesk.ticket.stage"].browse(vals['stage_id'])
-                    if new_stage.name != 'Done':
-                        # Allow this change to move from Done to other stage
-                        pass
-                    else:
-                        # Prevent any other changes while in Done stage
-                        raise UserError(_("Cannot modify ticket '%s' because it is in 'Done' stage. "
-                                        "Please change the stage first if you need to make modifications.") % ticket.number)
-                else:
-                    # Prevent any other changes while in Done stage
-                    raise UserError(_("Cannot modify ticket '%s' because it is in 'Done' stage. "
-                                    "Please change the stage first if you need to make modifications.") % ticket.number)
+        # Check if checkbox is True for modification restrictions
+        # for ticket in self:
+        #     if ticket.checkbox:
+        #         # Allow only checkbox field to be modified
+        #         if len(vals) == 1 and 'checkbox' in vals:
+        #             if vals['checkbox'] == False:
+        #                 # Allow unchecking checkbox
+        #                 pass
+        #             else:
+        #                 raise UserError(_("Cannot modify ticket '%s' because checkbox is checked. "
+        #                                 "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
+        #         else:
+        #             raise UserError(_("Cannot modify ticket '%s' because checkbox is checked. "
+        #                             "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
         
-        # MODIFIED: Auto update stage berdasarkan time_start dan time_end
         stage_updates = self._get_stage_updates_from_time(vals)
         vals.update(stage_updates)
             

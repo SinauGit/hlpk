@@ -163,31 +163,32 @@
             <tree editable="top">
                 <field name="sequence" invisible="1" widget="handle" />
                 <field name="is_stage_done" invisible="1"/>
-                <field name="number" decoration-bf="1" readonly="1"/>
-                <!-- <field name="number_internal" optional="show" /> -->
+                <field name="number" decoration-bf="1" readonly="1" optional="hide"/>
                 <field name="name" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
                 <field name="partner_id" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
                 <field name="employee_id" invisible="1"/>
                 <field name="assigned_employee_ids" widget="many2many_tags" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
                 <field name="category_id" options="{'color_field': 'html_color'}" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="description" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="priority" optional="show" widget="priority" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="is_due_date_passed" invisible="1"/>
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
                 <field name="time_start" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="due_date" optional="show" decoration-danger="is_due_date_passed"/>
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
+                <field name="priority" optional="show" widget="priority" 
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
+                <field name="description" optional="show" 
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
+                <field name="time_end" optional="show" 
+                       attrs="{'readonly': [('checkbox', '=', True)]}"/>
                 <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary"
                        attrs="{'readonly': [('is_stage_done', '!=', True)]}"/>
                 <field name="tsr_filename" invisible="1"/>
-                <field name="time_end" optional="show" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="stage_id" optional="show"/>
+                <field name="due_date" optional="show" decoration-danger="is_due_date_passed"/>
+                <field name="is_due_date_passed" invisible="1"/>
+                <field name="stage_id" optional="show"
+                        attrs="{'readonly': [('checkbox', '=', True)]}"/>
+                <field name="checkbox" optional="hide"/>
                 <field name="create_date" widget="remaining_days" readonly="1" optional="hide" />
                 <field name="last_stage_update" widget="remaining_days" optional="hide" readonly="1"/>
                 <field name="closed_date" optional="hide" readonly="1"/>
