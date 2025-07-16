@@ -160,7 +160,6 @@
         <field name="name">helpdesk.ticket.view.tree</field>
         <field name="model">helpdesk.ticket</field>
         <field name="arch" type="xml">
-            <!-- <tree editable="top" edit="false" create="true" delete="true"> -->
             <tree editable="top">
                 <field name="sequence" invisible="1" widget="handle" />
                 <field name="is_stage_done" invisible="1"/>
@@ -180,13 +179,12 @@
                 <field name="priority" optional="show" widget="priority" 
                        attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
                 <field name="is_due_date_passed" invisible="1"/>
-                <field name="due_date" optional="show" decoration-danger="is_due_date_passed" 
-                       attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary" 
-                       attrs="{'invisible': [('is_stage_done', '=', False)], 'readonly': [('is_stage_done', '=', True)]}"/>
-                <field name="tsr_filename" invisible="1"/>
                 <field name="time_start" optional="show" 
                        attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
+                <field name="due_date" optional="show" decoration-danger="is_due_date_passed"/>
+                <field name="tsr_file" filename="tsr_filename" optional="show" widget="binary"
+                       attrs="{'readonly': [('is_stage_done', '!=', True)]}"/>
+                <field name="tsr_filename" invisible="1"/>
                 <field name="time_end" optional="show" 
                        attrs="{'readonly': [('is_stage_done', '=', True)]}"/>
                 <field name="stage_id" optional="show"/>

@@ -10,30 +10,6 @@ class HelpdeskTicket(models.Model):
     _rec_names_search = ["number", "name"]
     _order = "priority desc, sequence, number desc, id desc"
 
-    @api.model
-    def _default_stage_id(self):
-        """Mendapatkan stage 'New' sebagai nilai default."""
-        stage = self.env["helpdesk.ticket.stage"].search([("name", "=", "New")], limit=1)
-        return stage.id if stage else False
-
-    @api.depends("stage_id")
-    def _compute_stage_id(self):
-        for ticket in self:
-            if not ticket.stage_id:
-                # Cari stage "New"
-                new_stage = self.env["helpdesk.ticket.stage"].search(
-                    [('name', '=', 'New'), ("company_id", "in", [False, ticket.company_id.id])], limit=1
-                )
-                if new_stage:
-                    ticket.stage_id = new_stage.id
-                else:
-                    # Fallback ke stage pertama jika tidak ada yang namanya "New"
-                    first_stage = self.env["helpdesk.ticket.stage"].search(
-                        [("company_id", "in", [False, ticket.company_id.id])], limit=1
-                    )
-                    if first_stage:
-                        ticket.stage_id = first_stage.id
-
     @api.constrains('name')
     def _check_name_duplicate(self):
         for record in self:
@@ -165,7 +141,6 @@ class HelpdeskTicket(models.Model):
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
     name = fields.Char(string="Title/Issue", required=False)
-    # number_internal = fields.Char(string="Ticket Internal", required=True)
     description = fields.Html(required=True, sanitize_style=True)
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
@@ -188,12 +163,16 @@ class HelpdeskTicket(models.Model):
         tracking=True,
         copy=False,
         index=True,
-        default=_default_stage_id,
     )
+    
+    # MODIFIED: partner_id sekarang menggunakan domain dari customer_pic
     partner_id = fields.Many2one(
         comodel_name="res.partner",
         string="Customer",
+        # domain="[('customer_rank', '>', 0)]",
+        # domain=lambda self: [('id', 'in', self.env['customer.pic'].search([('active', '=', True)]).mapped('partner_id.id'))]
     )
+
     last_stage_update = fields.Datetime(default=fields.Datetime.now)
     assigned_date = fields.Datetime()
     closed_date = fields.Datetime()
@@ -239,17 +218,19 @@ class HelpdeskTicket(models.Model):
     )
     active = fields.Boolean(default=True)
     
-    # New fields
     due_date = fields.Date(
         string="Due Date", 
         tracking=True,
-        default=lambda self: fields.Date.today() + timedelta(days=3)
+        compute="_compute_due_date",
+        store=True,
+        readonly=True
     )
     tsr_file = fields.Binary(string="Upload TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
     # Time tracking fields - diubah dari float menjadi datetime
-    time_start = fields.Datetime(string="Start Time", copy=False, default=fields.Datetime.now() ) 
+    time_start = fields.Datetime(string="Start Time", copy=False ) 
+    # default=fields.Datetime.now()
     time_end = fields.Datetime(string="End Time", copy=False)
     
     # Compute field for due date display
@@ -320,6 +301,29 @@ class HelpdeskTicket(models.Model):
                 if not self.employee_id and pic.employee_ids:
                     self.employee_id = pic.employee_ids[0].id
 
+    # MODIFIED: Tambahkan onchange untuk time_start dan time_end
+    @api.onchange('time_start')
+    def _onchange_time_start(self):
+        """Ketika time_start diisi, ubah stage ke In Progress"""
+        if self.time_start:
+            in_progress_stage = self.env["helpdesk.ticket.stage"].search([
+                ("name", "=", "In Progress"),
+                ("company_id", "in", [False, self.company_id.id])
+            ], limit=1)
+            if in_progress_stage:
+                self.stage_id = in_progress_stage.id
+
+    @api.onchange('time_end')
+    def _onchange_time_end(self):
+        """Ketika time_end diisi, ubah stage ke Done"""
+        if self.time_end:
+            done_stage = self.env["helpdesk.ticket.stage"].search([
+                ("name", "=", "Done"),
+                ("company_id", "in", [False, self.company_id.id])
+            ], limit=1)
+            if done_stage:
+                self.stage_id = done_stage.id
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -338,6 +342,10 @@ class HelpdeskTicket(models.Model):
                     # Set employee utama jika belum ada
                     if not vals.get('employee_id') and pic.employee_ids:
                         vals['employee_id'] = pic.employee_ids[0].id
+            
+            # MODIFIED: Auto update stage berdasarkan time_start dan time_end saat create
+            stage_updates = self._get_stage_updates_from_time(vals)
+            vals.update(stage_updates)
             
         return super().create(vals_list)
 
@@ -371,6 +379,10 @@ class HelpdeskTicket(models.Model):
                     raise UserError(_("Cannot modify ticket '%s' because it is in 'Done' stage. "
                                     "Please change the stage first if you need to make modifications.") % ticket.number)
         
+        # MODIFIED: Auto update stage berdasarkan time_start dan time_end
+        stage_updates = self._get_stage_updates_from_time(vals)
+        vals.update(stage_updates)
+            
         for ticket in self:
             now = fields.Datetime.now()
             if vals.get("employee_id") and not ticket.employee_id:
@@ -429,3 +441,38 @@ class HelpdeskTicket(models.Model):
                 raise UserError(_("Cannot delete ticket '%s' because it is in 'Done' stage. "
                                 "Please change the stage first if you need to delete it.") % ticket.number)
         return super().unlink()
+
+    @api.depends('time_start')
+    def _compute_due_date(self):
+        for ticket in self:
+            if ticket.time_start:
+                # Due date adalah 3 hari dari time_start
+                ticket.due_date = (ticket.time_start + timedelta(days=3)).date()
+            else:
+                # Jika tidak ada time_start, gunakan default (3 hari dari hari ini)
+                ticket.due_date = False
+
+    # MODIFIED: Ganti nama method dan perbaiki logika
+    def _get_stage_updates_from_time(self, vals):
+        """Otomatis update stage berdasarkan time_start dan time_end"""
+        stage_updates = {}
+        
+        # Jika time_start diisi, ubah ke "In Progress"
+        if vals.get('time_start'):
+            in_progress_stage = self.env["helpdesk.ticket.stage"].search([
+                ("name", "=", "In Progress"),
+                ("company_id", "in", [False, self.company_id.id if hasattr(self, 'company_id') else self.env.company.id])
+            ], limit=1)
+            if in_progress_stage:
+                stage_updates['stage_id'] = in_progress_stage.id
+        
+        # Jika time_end diisi, ubah ke "Done" (priority lebih tinggi dari time_start)
+        if vals.get('time_end'):
+            done_stage = self.env["helpdesk.ticket.stage"].search([
+                ("name", "=", "Done"),
+                ("company_id", "in", [False, self.company_id.id if hasattr(self, 'company_id') else self.env.company.id])
+            ], limit=1)
+            if done_stage:
+                stage_updates['stage_id'] = done_stage.id
+        
+        return stage_updates
