@@ -264,6 +264,13 @@ class HelpdeskTicket(models.Model):
         store=False,
     )
     
+    # MODIFIED: Tambahkan field untuk menentukan apakah due_date harus berwarna merah
+    is_due_date_red = fields.Boolean(
+        string="Is Due Date Red",
+        compute="_compute_is_due_date_red",
+        store=False,
+    )
+    
     # Compute field for stage is Done
     is_stage_done = fields.Boolean(
         string="Is Stage Done",
@@ -276,18 +283,27 @@ class HelpdeskTicket(models.Model):
         today = fields.Date.today()
         for ticket in self:
             ticket.is_due_date_passed = ticket.due_date and ticket.due_date < today
+    
+    # MODIFIED: Tambahkan compute untuk menentukan warna merah due_date
+    @api.depends('due_date', 'time_end')
+    def _compute_is_due_date_red(self):
+        """Compute field untuk menentukan apakah due_date harus berwarna merah"""
+        today = fields.Date.today()
+        for ticket in self:
+            ticket.is_due_date_red = False
+            
+            if ticket.due_date:
+                # Jika time_end ada dan tanggalnya melebihi due_date
+                if ticket.time_end and ticket.time_end.date() > ticket.due_date:
+                    ticket.is_due_date_red = True
+                # Jika time_end kosong dan hari ini melebihi due_date
+                elif not ticket.time_end and today > ticket.due_date:
+                    ticket.is_due_date_red = True
             
     @api.depends('stage_id', 'stage_id.name')
     def _compute_is_stage_done(self):
         for ticket in self:
             ticket.is_stage_done = ticket.stage_id and ticket.stage_id.name == 'Done'
-
-    # def _check_checkbox_edit(self):
-    #     """Check if ticket checkbox is True and prevent editing"""
-    #     for ticket in self:
-    #         if ticket.checkbox:
-    #             raise UserError(_("Cannot edit ticket '%s' because checkbox is checked. "
-    #                             "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
 
     def name_get(self):
         res = []
@@ -296,9 +312,6 @@ class HelpdeskTicket(models.Model):
         return res
 
     def assign_to_me(self):
-        # Check if checkbox is True
-        # self._check_checkbox_edit()
-        
         # Mendapatkan employee terkait user saat ini
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
         if employee:
@@ -325,44 +338,36 @@ class HelpdeskTicket(models.Model):
                 if not self.employee_id and pic.employee_ids:
                     self.employee_id = pic.employee_ids[0].id
 
-    # MODIFIED: Tambahkan onchange untuk time_start dan time_end
-    @api.onchange('time_start')
-    def _onchange_time_start(self):
-        """Ketika time_start diisi, ubah stage ke In Progress"""
-        if self.time_start:
-            in_progress_stage = self.env["helpdesk.ticket.stage"].search([
-                ("name", "=", "In Progress"),
-                ("company_id", "in", [False, self.company_id.id])
-            ], limit=1)
-            if in_progress_stage:
-                self.stage_id = in_progress_stage.id
+    # FIXED: Hapus atau nonaktifkan onchange methods yang menyebabkan konflik
+    # @api.onchange('time_start')
+    # def _onchange_time_start(self):
+    #     """Ketika time_start diisi, ubah stage ke In Progress"""
+    #     if self.time_start:
+    #         in_progress_stage = self.env["helpdesk.ticket.stage"].search([
+    #             ("name", "=", "In Progress"),
+    #             ("company_id", "in", [False, self.company_id.id])
+    #         ], limit=1)
+    #         if in_progress_stage:
+    #             self.stage_id = in_progress_stage.id
 
-    @api.onchange('time_end')
-    def _onchange_time_end(self):
-        """Ketika time_end diisi, ubah stage ke Done"""
-        if self.time_end:
-            done_stage = self.env["helpdesk.ticket.stage"].search([
-                ("name", "=", "Done"),
-                ("company_id", "in", [False, self.company_id.id])
-            ], limit=1)
-            if done_stage:
-                self.stage_id = done_stage.id
+    # @api.onchange('time_end')
+    # def _onchange_time_end(self):
+    #     """Ketika time_end diisi, ubah stage ke Done"""
+    #     if self.time_end:
+    #         done_stage = self.env["helpdesk.ticket.stage"].search([
+    #             ("name", "=", "Done"),
+    #             ("company_id", "in", [False, self.company_id.id])
+    #         ], limit=1)
+    #         if done_stage:
+    #             self.stage_id = done_stage.id
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             vals.update(self._prepare_ticket_number(vals))
+            
             if not vals.get("employee_id"):
                 vals.update({"assigned_date": fields.Datetime.now()})
-            
-            # Set default stage to New if not provided
-            if not vals.get('stage_id'):
-                new_stage = self.env["helpdesk.ticket.stage"].search([
-                    ("name", "=", "New"),
-                    ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
-                ], limit=1)
-                if new_stage:
-                    vals['stage_id'] = new_stage.id
             
             # Jika ada partner_id dan tidak ada assigned_employee_ids, coba cari PIC
             if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
@@ -376,9 +381,20 @@ class HelpdeskTicket(models.Model):
                     if not vals.get('employee_id') and pic.employee_ids:
                         vals['employee_id'] = pic.employee_ids[0].id
             
-            # MODIFIED: Auto update stage berdasarkan time_start dan time_end saat create
-            stage_updates = self._get_stage_updates_from_time(vals)
-            vals.update(stage_updates)
+            # FIXED: Sederhanakan logika stage setting
+            # Set default stage ke New jika belum ada
+            if not vals.get('stage_id'):
+                new_stage = self.env["helpdesk.ticket.stage"].search([
+                    ("name", "=", "New"),
+                    ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
+                ], limit=1)
+                if new_stage:
+                    vals['stage_id'] = new_stage.id
+            
+            # FIXED: Gunakan method yang sudah diperbaiki
+            stage_updates = self._get_stage_updates_from_time_create(vals)
+            if stage_updates:
+                vals.update(stage_updates)
             
         return super().create(vals_list)
 
@@ -392,23 +408,15 @@ class HelpdeskTicket(models.Model):
         return res
 
     def write(self, vals):
-        # Check if checkbox is True for modification restrictions
-        # for ticket in self:
-        #     if ticket.checkbox:
-        #         # Allow only checkbox field to be modified
-        #         if len(vals) == 1 and 'checkbox' in vals:
-        #             if vals['checkbox'] == False:
-        #                 # Allow unchecking checkbox
-        #                 pass
-        #             else:
-        #                 raise UserError(_("Cannot modify ticket '%s' because checkbox is checked. "
-        #                                 "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
-        #         else:
-        #             raise UserError(_("Cannot modify ticket '%s' because checkbox is checked. "
-        #                             "Please uncheck the checkbox first if you need to make modifications.") % ticket.number)
+        # FIXED: Perbaiki logika write method
+        original_vals = vals.copy()
         
-        stage_updates = self._get_stage_updates_from_time(vals)
-        vals.update(stage_updates)
+        # FIXED: Dapatkan stage updates tapi jangan langsung update vals
+        stage_updates = self._get_stage_updates_from_time_write(vals)
+        
+        # FIXED: Hanya update stage jika tidak ada stage_id yang sudah di-set manual
+        if stage_updates.get('stage_id') and not vals.get('stage_id'):
+            vals.update(stage_updates)
             
         for ticket in self:
             now = fields.Datetime.now()
@@ -420,14 +428,14 @@ class HelpdeskTicket(models.Model):
                 if stage.closed and not ticket.closed_date:
                     vals["closed_date"] = now
                     
-                    # Saat ticket ditutup, simpan waktu selesai
-                    if not ticket.time_end and not vals.get('time_end'):
+                    # FIXED: Jangan override time_end jika sudah ada di original vals
+                    if not ticket.time_end and not original_vals.get('time_end'):
                         vals['time_end'] = now
             
-            # Saat tiket dibuka pertama kali, catat waktu mulai
+            # FIXED: Saat tiket dibuka pertama kali, catat waktu mulai
             if ticket.unattended and vals.get('stage_id'):
                 new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
-                if not new_stage.unattended and not ticket.time_start and not vals.get('time_start'):
+                if not new_stage.unattended and not ticket.time_start and not original_vals.get('time_start'):
                     vals['time_start'] = now
                     
         return super().write(vals)
@@ -479,27 +487,58 @@ class HelpdeskTicket(models.Model):
                 # Jika tidak ada time_start, gunakan default (3 hari dari hari ini)
                 ticket.due_date = False
 
-    # MODIFIED: Ganti nama method dan perbaiki logika
-    def _get_stage_updates_from_time(self, vals):
-        """Otomatis update stage berdasarkan time_start dan time_end"""
+    # FIXED: Method baru untuk create dengan logika yang benar
+    def _get_stage_updates_from_time_create(self, vals):
+        """Otomatis update stage berdasarkan time_start dan time_end saat create"""
         stage_updates = {}
         
-        # Jika time_start diisi, ubah ke "In Progress"
-        if vals.get('time_start'):
+        # Prioritas: time_end > time_start
+        if vals.get('time_end'):
+            done_stage = self.env["helpdesk.ticket.stage"].search([
+                ("name", "=", "Done"),
+                ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
+            ], limit=1)
+            if done_stage:
+                stage_updates['stage_id'] = done_stage.id
+        elif vals.get('time_start'):
             in_progress_stage = self.env["helpdesk.ticket.stage"].search([
                 ("name", "=", "In Progress"),
-                ("company_id", "in", [False, self.company_id.id if hasattr(self, 'company_id') else self.env.company.id])
+                ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
             ], limit=1)
             if in_progress_stage:
                 stage_updates['stage_id'] = in_progress_stage.id
         
-        # Jika time_end diisi, ubah ke "Done" (priority lebih tinggi dari time_start)
+        return stage_updates
+
+    # FIXED: Method untuk write dengan logika yang diperbaiki
+    def _get_stage_updates_from_time_write(self, vals):
+        """Otomatis update stage berdasarkan time_start dan time_end saat write"""
+        stage_updates = {}
+        
+        # Prioritas: time_end > time_start
+        # Jika time_end diisi, selalu ubah ke "Done"
         if vals.get('time_end'):
             done_stage = self.env["helpdesk.ticket.stage"].search([
                 ("name", "=", "Done"),
-                ("company_id", "in", [False, self.company_id.id if hasattr(self, 'company_id') else self.env.company.id])
+                ("company_id", "in", [False, self.env.company.id])
             ], limit=1)
             if done_stage:
                 stage_updates['stage_id'] = done_stage.id
+        elif vals.get('time_start'):
+            # Jika hanya time_start yang diisi dan time_end tidak ada, ubah ke "In Progress"
+            # Tapi cek dulu apakah record sudah memiliki time_end
+            needs_in_progress = True
+            for ticket in self:
+                if ticket.time_end:
+                    needs_in_progress = False
+                    break
+            
+            if needs_in_progress:
+                in_progress_stage = self.env["helpdesk.ticket.stage"].search([
+                    ("name", "=", "In Progress"),
+                    ("company_id", "in", [False, self.env.company.id])
+                ], limit=1)
+                if in_progress_stage:
+                    stage_updates['stage_id'] = in_progress_stage.id
         
         return stage_updates
