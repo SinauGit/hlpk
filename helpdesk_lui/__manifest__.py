@@ -7,17 +7,18 @@
     "license": "AGPL-3",
     "website": "",
     # "depends": ["base", "hr"],
-    "depends": ["hr"],
+    "depends": ["hr","mail"],
     "data": [
         "security/helpdesk_security.xml",
         "security/ir.model.access.csv",
         "data/helpdesk_data.xml",
         "views/helpdesk_ticket_views.xml",
-        "views/helpdesk_ticket_menu.xml",
+        "views/helpdesk_ticket_audit_views.xml",
         "views/helpdesk_dashboard_views.xml",
         "views/helpdesk_ticket_category_views.xml",
         "views/helpdesk_ticket_stage_views.xml",
         "views/customer_pic_views.xml",
+        "views/helpdesk_ticket_menu.xml",
     ],
     "assets": {
         "web.assets_backend": [

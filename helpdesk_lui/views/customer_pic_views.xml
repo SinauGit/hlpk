@@ -29,12 +29,4 @@
         <field name="res_model">customer.pic</field>
         <field name="view_mode">tree</field>
     </record>
-
-    <menuitem
-        id="customer_pic_menu"
-        name="Customer PICs"
-        parent="helpdesk_ticket_config_main_menu"
-        action="customer_pic_action"
-        sequence="20"
-    />
 </odoo>     

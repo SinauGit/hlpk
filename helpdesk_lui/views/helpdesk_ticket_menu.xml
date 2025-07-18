@@ -15,6 +15,12 @@
         <field name="res_model">helpdesk.ticket</field>
         <field name="view_mode">tree</field>
     </record>
+    <record id="helpdesk_ticket_action_form" model="ir.actions.act_window">
+        <field name="name">Tickets Logs</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">helpdesk.ticket</field>
+        <field name="view_mode">tree,form</field>
+    </record>
     <record id="helpdesk_ticket_reporting_action" model="ir.actions.act_window">
         <field name="name">Reporting</field>
         <field name="type">ir.actions.act_window</field>
@@ -25,13 +31,13 @@
         <field name="name">Categories</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">helpdesk.ticket.category</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree</field>
     </record>
     <record id="helpdesk_ticket_stage_action" model="ir.actions.act_window">
         <field name="name">Stages</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">helpdesk.ticket.stage</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree</field>
     </record>
     <!-- Menus -->
     <menuitem
@@ -63,11 +69,11 @@
         groups="group_helpdesk_manager"
     />
     <menuitem
-        id="helpdesk_ticket_reporting_analysis"
-        name="Tickets"
+        id="helpdesk_ticket_menu_log"
+        name="Tickets Logs"
         parent="helpdesk_ticket_reporting_menu"
-        action="helpdesk_ticket_reporting_action"
-        sequence="5"
+        action="helpdesk_ticket_action_form"
+        sequence="40"
     />
     <menuitem
         id="helpdesk_ticket_config_main_menu"
@@ -76,13 +82,14 @@
         sequence="35"
         groups="group_helpdesk_manager"
     />
-    <!-- <menuitem
-        id="helpdesk_config_settings_menu"
-        name="Settings"
+
+    <menuitem 
+        id="helpdesk_ticket_audit_log_menu" 
+        name="Ticket Audit Log" 
         parent="helpdesk_ticket_config_main_menu"
-        action="action_helpdesk_lui_config_settings"
-        sequence="1"
-    /> -->
+        action="helpdesk_ticket_audit_log_action"
+        sequence="55"
+    />
     <menuitem
         id="helpdesk_ticket_category_menu"
         name="Categories"
@@ -100,7 +107,7 @@
     <record id="customer_pic_action" model="ir.actions.act_window">
         <field name="name">Customer PICs</field>
         <field name="res_model">customer.pic</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree</field>
     </record>
 
     <menuitem
@@ -109,6 +116,13 @@
         parent="helpdesk_ticket_config_main_menu"
         action="customer_pic_action"
         sequence="30"
+    />
+    <menuitem
+        id="helpdesk_ticket_reporting_analysis"
+        name="Tickets"
+        parent="helpdesk_ticket_config_main_menu"
+        action="helpdesk_ticket_reporting_action"
+        sequence="5"
     />
 
 </odoo> 

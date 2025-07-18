@@ -11,3 +11,6 @@ access_helpdesk_ticket_category_manager,helpdesk.ticket.category.manager,model_h
 access_customer_pic_employee,customer.pic.employee,model_customer_pic,group_helpdesk_user,1,1,0,0
 access_customer_pic_user,customer.pic.user,model_customer_pic,group_helpdesk_user_own,1,0,0,0
 access_customer_pic_manager,customer.pic.manager,model_customer_pic,group_helpdesk_manager,1,1,1,1
+access_helpdesk_ticket_audit_log_employee,helpdesk.ticket.audit.log.employee,model_helpdesk_ticket_audit_log,group_helpdesk_user,1,1,0,0
+access_helpdesk_ticket_audit_log_user,helpdesk.ticket.audit.log.user,model_helpdesk_ticket_audit_log,group_helpdesk_user_own,1,0,0,0
+access_helpdesk_ticket_audit_log_manager,helpdesk.ticket.audit.log.manager,model_helpdesk_ticket_audit_log,group_helpdesk_manager,1,1,1,1

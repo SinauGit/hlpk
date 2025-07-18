@@ -1,11 +1,13 @@
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
+import json
 
 
 class HelpdeskTicket(models.Model):
     _name = "helpdesk.ticket"
     _description = "Helpdesk Ticket"
+    _inherit = ['mail.thread', 'mail.activity.mixin']  # ADD THIS LINE
     _rec_name = "number"
     _rec_names_search = ["number", "name"]
     _order = "priority desc, sequence, number desc, id desc"
@@ -16,9 +18,6 @@ class HelpdeskTicket(models.Model):
             if not record.name:
                 continue
             
-            # Search for tickets with the same title (case insensitive)
-            # Using ILIKE for case-insensitive search
-            # Using % for exact match (not substring match)
             domain = [
                 ('id', '!=', record.id),
                 ('name', '=ilike', record.name)
@@ -52,16 +51,13 @@ class HelpdeskTicket(models.Model):
     
     @api.depends("partner_id")
     def _compute_customer_dashboard(self):
-        # Gunakan aggregate per customer untuk menghindari duplikasi
         tickets_by_partner = {}
         
-        # Cari semua partner_id yang unik dari tiket aktif
         active_partners = self.env['helpdesk.ticket'].search([
             ('active', '=', True),
             ('partner_id', '!=', False)
         ]).mapped('partner_id.id')
         
-        # Hanya tiket pertama untuk tiap partner yang diproses
         processed_partners = set()
         
         for ticket in self:
@@ -71,15 +67,12 @@ class HelpdeskTicket(models.Model):
                 
             partner_id = ticket.partner_id.id
             
-            # Skip jika partner sudah diproses atau partner tidak aktif
             if partner_id in processed_partners or partner_id not in active_partners:
                 ticket.customer_ticket_count = 0
                 continue
                 
-            # Tandai partner ini sudah diproses
             processed_partners.add(partner_id)
             
-            # Hitung total tiket untuk partner ini
             ticket.customer_ticket_count = self.search_count([
                 ('partner_id', '=', partner_id),
                 ('active', '=', True)
@@ -87,11 +80,9 @@ class HelpdeskTicket(models.Model):
 
     @api.depends("partner_id", "stage_id", "employee_id", "unattended", "closed", "priority")
     def _compute_dashboard_counts(self):
-        # Empty recordset
         for record in self:
             partner_id = record.partner_id.id if record.partner_id else False
             
-            # Jika tidak ada partner, set semua nilai ke 0
             if not partner_id:
                 record.unassigned_tickets = 0
                 record.unattended_tickets = 0
@@ -100,22 +91,18 @@ class HelpdeskTicket(models.Model):
                 record.high_priority_tickets = 0
                 continue
             
-            # Filter semua query dengan partner_id untuk mendapatkan hanya tiket-tiket dari customer ini
-            # Count unassigned tickets
             record.unassigned_tickets = self.search_count([
                 ('partner_id', '=', partner_id),
                 ('employee_id', '=', False),
                 ('active', '=', True)
             ])
             
-            # Count unattended tickets
             record.unattended_tickets = self.search_count([
                 ('partner_id', '=', partner_id),
                 ('unattended', '=', True),
                 ('active', '=', True)
             ])
             
-            # Count tickets assigned to current user (jika user adalah employee)
             if self.env.user.employee_ids:
                 record.assigned_tickets = self.search_count([
                     ('partner_id', '=', partner_id),
@@ -125,23 +112,32 @@ class HelpdeskTicket(models.Model):
             else:
                 record.assigned_tickets = 0
                 
-            # Count open tickets
             record.open_tickets = self.search_count([
                 ('partner_id', '=', partner_id),
                 ('closed', '=', False),
                 ('active', '=', True)
             ])
             
-            # Count high priority tickets
             record.high_priority_tickets = self.search_count([
                 ('partner_id', '=', partner_id),
                 ('priority', '=', '3'),
                 ('active', '=', True)
             ])
 
+    is_today = fields.Boolean(string="today", compute="_compute_is_today", store=True)
+    @api.depends('time_start')
+    def _compute_is_today(self):
+        for rec in self:
+            if rec.time_start:
+                today = fields.Date.context_today(self)
+                rec.is_today = rec.time_start.date() == today
+            else:
+                rec.is_today = False
+
+
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
-    name = fields.Char(string="Title/Issue", required=False)
-    description = fields.Html(required=True, sanitize_style=True)
+    name = fields.Char(string="Title/Issue", required=False, tracking=True)
+    description = fields.Html(required=False, sanitize_style=True, tracking=True)
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Main Assigned Employee",
@@ -177,15 +173,12 @@ class HelpdeskTicket(models.Model):
                 if new_stage:
                     record.stage_id = new_stage.id
     
-    # MODIFIED: partner_id sekarang menggunakan domain dari customer_pic
     partner_id = fields.Many2one(
         comodel_name="res.partner",
         string="Customer",
-        # domain="[('customer_rank', '>', 0)]",
-        # domain=lambda self: [('id', 'in', self.env['customer.pic'].search([('active', '=', True)]).mapped('partner_id.id'))]
+        tracking=True,
     )
 
-    # New checkbox field
     checkbox = fields.Boolean(string="Checkbox", default=False, compute="_compute_checkbox", store=True, readonly=False)
     
     @api.depends('stage_id', 'stage_id.name')
@@ -211,6 +204,7 @@ class HelpdeskTicket(models.Model):
     category_id = fields.Many2one(
         comodel_name="helpdesk.ticket.category",
         string="Category",
+        tracking=True,
     )
     priority = fields.Selection(
         selection=[
@@ -220,6 +214,7 @@ class HelpdeskTicket(models.Model):
             ("3", "Very High"),
         ],
         default="1",
+        tracking=True,
     )
     attachment_ids = fields.One2many(
         comodel_name="ir.attachment",
@@ -252,26 +247,21 @@ class HelpdeskTicket(models.Model):
     tsr_file = fields.Binary(string="Upload TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
-    # Time tracking fields - diubah dari float menjadi datetime
-    time_start = fields.Datetime(string="Start Time", copy=False ) 
-    # default=fields.Datetime.now()
-    time_end = fields.Datetime(string="End Time", copy=False)
+    time_start = fields.Datetime(string="Start Time", copy=False, tracking=True) 
+    time_end = fields.Datetime(string="End Time", copy=False, tracking=True)
     
-    # Compute field for due date display
     is_due_date_passed = fields.Boolean(
         string="Is Due Date Passed",
         compute="_compute_is_due_date_passed",
         store=False,
     )
     
-    # MODIFIED: Tambahkan field untuk menentukan apakah due_date harus berwarna merah
     is_due_date_red = fields.Boolean(
         string="Is Due Date Red",
         compute="_compute_is_due_date_red",
         store=False,
     )
     
-    # Compute field for stage is Done
     is_stage_done = fields.Boolean(
         string="Is Stage Done",
         compute="_compute_is_stage_done",
@@ -284,7 +274,6 @@ class HelpdeskTicket(models.Model):
         for ticket in self:
             ticket.is_due_date_passed = ticket.due_date and ticket.due_date < today
     
-    # MODIFIED: Tambahkan compute untuk menentukan warna merah due_date
     @api.depends('due_date', 'time_end')
     def _compute_is_due_date_red(self):
         """Compute field untuk menentukan apakah due_date harus berwarna merah"""
@@ -293,10 +282,8 @@ class HelpdeskTicket(models.Model):
             ticket.is_due_date_red = False
             
             if ticket.due_date:
-                # Jika time_end ada dan tanggalnya melebihi due_date
                 if ticket.time_end and ticket.time_end.date() > ticket.due_date:
                     ticket.is_due_date_red = True
-                # Jika time_end kosong dan hari ini melebihi due_date
                 elif not ticket.time_end and today > ticket.due_date:
                     ticket.is_due_date_red = True
             
@@ -312,7 +299,6 @@ class HelpdeskTicket(models.Model):
         return res
 
     def assign_to_me(self):
-        # Mendapatkan employee terkait user saat ini
         employee = self.env['hr.employee'].search([('user_id', '=', self.env.user.id)], limit=1)
         if employee:
             self.write({
@@ -323,8 +309,6 @@ class HelpdeskTicket(models.Model):
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
         if self.partner_id:
-            
-            # Cari PIC untuk customer ini
             pic = self.env['customer.pic'].search([
                 ('partner_id', '=', self.partner_id.id),
                 ('company_id', 'in', [False, self.company_id.id]),
@@ -332,34 +316,9 @@ class HelpdeskTicket(models.Model):
             ], limit=1)
             
             if pic and pic.employee_ids:
-                # Set assigned employees dari PIC
                 self.assigned_employee_ids = [(6, 0, pic.employee_ids.ids)]
-                # Set employee utama (yang pertama)
                 if not self.employee_id and pic.employee_ids:
                     self.employee_id = pic.employee_ids[0].id
-
-    # FIXED: Hapus atau nonaktifkan onchange methods yang menyebabkan konflik
-    # @api.onchange('time_start')
-    # def _onchange_time_start(self):
-    #     """Ketika time_start diisi, ubah stage ke In Progress"""
-    #     if self.time_start:
-    #         in_progress_stage = self.env["helpdesk.ticket.stage"].search([
-    #             ("name", "=", "In Progress"),
-    #             ("company_id", "in", [False, self.company_id.id])
-    #         ], limit=1)
-    #         if in_progress_stage:
-    #             self.stage_id = in_progress_stage.id
-
-    # @api.onchange('time_end')
-    # def _onchange_time_end(self):
-    #     """Ketika time_end diisi, ubah stage ke Done"""
-    #     if self.time_end:
-    #         done_stage = self.env["helpdesk.ticket.stage"].search([
-    #             ("name", "=", "Done"),
-    #             ("company_id", "in", [False, self.company_id.id])
-    #         ], limit=1)
-    #         if done_stage:
-    #             self.stage_id = done_stage.id
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -369,7 +328,6 @@ class HelpdeskTicket(models.Model):
             if not vals.get("employee_id"):
                 vals.update({"assigned_date": fields.Datetime.now()})
             
-            # Jika ada partner_id dan tidak ada assigned_employee_ids, coba cari PIC
             if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
                 pic = self.env['customer.pic'].search([
                     ('partner_id', '=', vals.get('partner_id')),
@@ -377,12 +335,9 @@ class HelpdeskTicket(models.Model):
                 ], limit=1)
                 if pic and pic.employee_ids:
                     vals['assigned_employee_ids'] = [(6, 0, pic.employee_ids.ids)]
-                    # Set employee utama jika belum ada
                     if not vals.get('employee_id') and pic.employee_ids:
                         vals['employee_id'] = pic.employee_ids[0].id
             
-            # FIXED: Sederhanakan logika stage setting
-            # Set default stage ke New jika belum ada
             if not vals.get('stage_id'):
                 new_stage = self.env["helpdesk.ticket.stage"].search([
                     ("name", "=", "New"),
@@ -391,12 +346,17 @@ class HelpdeskTicket(models.Model):
                 if new_stage:
                     vals['stage_id'] = new_stage.id
             
-            # FIXED: Gunakan method yang sudah diperbaiki
             stage_updates = self._get_stage_updates_from_time_create(vals)
             if stage_updates:
                 vals.update(stage_updates)
             
-        return super().create(vals_list)
+        tickets = super().create(vals_list)
+        
+        # Create audit log for new tickets
+        for ticket in tickets:
+            self._create_audit_log(ticket, 'create', {}, ticket.read()[0])
+        
+        return tickets
 
     def copy(self, default=None):
         self.ensure_one()
@@ -408,13 +368,15 @@ class HelpdeskTicket(models.Model):
         return res
 
     def write(self, vals):
-        # FIXED: Perbaiki logika write method
+        # Store original values for audit
+        original_values = {}
+        for ticket in self:
+            original_values[ticket.id] = ticket.read()[0]
+        
         original_vals = vals.copy()
         
-        # FIXED: Dapatkan stage updates tapi jangan langsung update vals
         stage_updates = self._get_stage_updates_from_time_write(vals)
         
-        # FIXED: Hanya update stage jika tidak ada stage_id yang sudah di-set manual
         if stage_updates.get('stage_id') and not vals.get('stage_id'):
             vals.update(stage_updates)
             
@@ -428,17 +390,22 @@ class HelpdeskTicket(models.Model):
                 if stage.closed and not ticket.closed_date:
                     vals["closed_date"] = now
                     
-                    # FIXED: Jangan override time_end jika sudah ada di original vals
                     if not ticket.time_end and not original_vals.get('time_end'):
                         vals['time_end'] = now
             
-            # FIXED: Saat tiket dibuka pertama kali, catat waktu mulai
             if ticket.unattended and vals.get('stage_id'):
                 new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
                 if not new_stage.unattended and not ticket.time_start and not original_vals.get('time_start'):
                     vals['time_start'] = now
                     
-        return super().write(vals)
+        result = super().write(vals)
+        
+        # Create audit log for changes
+        for ticket in self:
+            new_values = ticket.read()[0]
+            self._create_audit_log(ticket, 'write', original_values[ticket.id], new_values)
+        
+        return result
 
     def _prepare_ticket_number(self, values):
         seq = self.env["ir.sequence"]
@@ -447,7 +414,6 @@ class HelpdeskTicket(models.Model):
         return {"number": seq.next_by_code("helpdesk.ticket.sequence") or "/"}
         
     def action_duplicate_tickets(self):
-        # Check if any ticket is in Done stage
         for ticket in self:
             if ticket.stage_id and ticket.stage_id.name == 'Done':
                 raise UserError(_("Cannot duplicate ticket '%s' because it is in 'Done' stage.") % ticket.number)
@@ -461,38 +427,36 @@ class HelpdeskTicket(models.Model):
         self.ensure_one()
         action = self.env.ref('helpdesk_lui.helpdesk_ticket_action').read()[0]
         
-        # Context dikirim dari button di kanban view
         context = self.env.context.copy()
         
-        # Update context di action
         action['context'] = context
         
         return action
 
     def unlink(self):
-        # Check if any ticket is in Done stage before allowing deletion
         for ticket in self:
             if ticket.stage_id and ticket.stage_id.name == 'Done':
                 raise UserError(_("Cannot delete ticket '%s' because it is in 'Done' stage. "
                                 "Please change the stage first if you need to delete it.") % ticket.number)
+        
+        # Create audit log for deletion
+        for ticket in self:
+            self._create_audit_log(ticket, 'unlink', ticket.read()[0], {})
+        
         return super().unlink()
 
     @api.depends('time_start')
     def _compute_due_date(self):
         for ticket in self:
             if ticket.time_start:
-                # Due date adalah 3 hari dari time_start
                 ticket.due_date = (ticket.time_start + timedelta(days=3)).date()
             else:
-                # Jika tidak ada time_start, gunakan default (3 hari dari hari ini)
                 ticket.due_date = False
 
-    # FIXED: Method baru untuk create dengan logika yang benar
     def _get_stage_updates_from_time_create(self, vals):
         """Otomatis update stage berdasarkan time_start dan time_end saat create"""
         stage_updates = {}
         
-        # Prioritas: time_end > time_start
         if vals.get('time_end'):
             done_stage = self.env["helpdesk.ticket.stage"].search([
                 ("name", "=", "Done"),
@@ -510,13 +474,10 @@ class HelpdeskTicket(models.Model):
         
         return stage_updates
 
-    # FIXED: Method untuk write dengan logika yang diperbaiki
     def _get_stage_updates_from_time_write(self, vals):
         """Otomatis update stage berdasarkan time_start dan time_end saat write"""
         stage_updates = {}
         
-        # Prioritas: time_end > time_start
-        # Jika time_end diisi, selalu ubah ke "Done"
         if vals.get('time_end'):
             done_stage = self.env["helpdesk.ticket.stage"].search([
                 ("name", "=", "Done"),
@@ -525,8 +486,6 @@ class HelpdeskTicket(models.Model):
             if done_stage:
                 stage_updates['stage_id'] = done_stage.id
         elif vals.get('time_start'):
-            # Jika hanya time_start yang diisi dan time_end tidak ada, ubah ke "In Progress"
-            # Tapi cek dulu apakah record sudah memiliki time_end
             needs_in_progress = True
             for ticket in self:
                 if ticket.time_end:
@@ -542,3 +501,111 @@ class HelpdeskTicket(models.Model):
                     stage_updates['stage_id'] = in_progress_stage.id
         
         return stage_updates
+
+    def _create_audit_log(self, ticket, operation, old_values, new_values):
+        """Create audit log for ticket changes"""
+        # Define fields to track (tree view fields)
+        tracked_fields = [
+            'number', 'name', 'partner_id', 'assigned_employee_ids', 'category_id',
+            'time_start', 'priority', 'description', 'time_end', 'tsr_file',
+            'due_date', 'stage_id', 'checkbox'
+        ]
+        
+        changes = []
+        
+        if operation == 'create':
+            for field in tracked_fields:
+                if field in new_values and new_values[field]:
+                    changes.append({
+                        'field': field,
+                        'old_value': None,
+                        'new_value': self._format_field_value(field, new_values[field])
+                    })
+        
+        elif operation == 'write':
+            for field in tracked_fields:
+                old_val = old_values.get(field)
+                new_val = new_values.get(field)
+                
+                if old_val != new_val:
+                    changes.append({
+                        'field': field,
+                        'old_value': self._format_field_value(field, old_val),
+                        'new_value': self._format_field_value(field, new_val)
+                    })
+        
+        elif operation == 'unlink':
+            for field in tracked_fields:
+                if field in old_values and old_values[field]:
+                    changes.append({
+                        'field': field,
+                        'old_value': self._format_field_value(field, old_values[field]),
+                        'new_value': None
+                    })
+        
+        # Only create audit log if there are changes
+        if changes:
+            self.env['helpdesk.ticket.audit.log'].create({
+                'ticket_id': ticket.id,
+                'user_id': self.env.user.id,
+                'operation': operation,
+                'changes': json.dumps(changes),
+                'timestamp': fields.Datetime.now()
+            })
+
+    def _format_field_value(self, field, value):
+        """Format field value for audit log"""
+        if not value:
+            return None
+            
+        field_obj = self._fields.get(field)
+        if not field_obj:
+            return str(value)
+            
+        if field_obj.type == 'many2one':
+            if isinstance(value, list) and len(value) >= 2:
+                return value[1]  # Return display name
+            return str(value)
+        elif field_obj.type == 'many2many':
+            if isinstance(value, list):
+                return ', '.join([str(v) for v in value])
+            return str(value)
+        elif field_obj.type == 'selection':
+            if hasattr(field_obj, 'selection'):
+                selection_dict = dict(field_obj.selection)
+                return selection_dict.get(value, str(value))
+            return str(value)
+        else:
+            return str(value)
+
+
+class HelpdeskTicketAuditLog(models.Model):
+    _name = "helpdesk.ticket.audit.log"
+    _description = "Helpdesk Ticket Audit Log"
+    _order = "timestamp desc"
+    
+    ticket_id = fields.Many2one(
+        'helpdesk.ticket', 
+        string='Ticket', 
+        required=True, 
+        ondelete='cascade'
+    )
+    user_id = fields.Many2one(
+        'res.users', 
+        string='User', 
+        required=True
+    )
+    operation = fields.Selection([
+        ('create', 'Created'),
+        ('write', 'Modified'),
+        ('unlink', 'Deleted')
+    ], string='Operation', required=True)
+    changes = fields.Text(string='Changes (JSON)')
+    timestamp = fields.Datetime(string='Timestamp', required=True)
+    
+    def name_get(self):
+        result = []
+        for record in self:
+            name = f"{record.ticket_id.number} - {record.operation} by {record.user_id.name}"
+            result.append((record.id, name))
+        return result

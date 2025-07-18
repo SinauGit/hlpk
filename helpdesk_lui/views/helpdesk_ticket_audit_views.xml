@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<odoo>
+    <!-- Audit Log Views -->
+    <record id="helpdesk_ticket_audit_log_view_tree" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.audit.log.tree</field>
+        <field name="model">helpdesk.ticket.audit.log</field>
+        <field name="arch" type="xml">
+            <tree create="false" edit="false" delete="false">
+                <field name="timestamp" widget="datetime"/>
+                <field name="ticket_id"/>
+                <field name="user_id"/>
+                <field name="operation"/>
+                <field name="changes" widget="text"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_audit_log_view_form" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.audit.log.form</field>
+        <field name="model">helpdesk.ticket.audit.log</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false" delete="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="ticket_id" readonly="1"/>
+                            <field name="user_id" readonly="1"/>
+                            <field name="operation" readonly="1"/>
+                            <field name="timestamp" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Changes Details">
+                        <field name="changes" widget="text" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_audit_log_view_search" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.audit.log.search</field>
+        <field name="model">helpdesk.ticket.audit.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="ticket_id"/>
+                <field name="user_id"/>
+                <field name="operation"/>
+                <field name="timestamp"/>
+                <filter string="Created" name="created" domain="[('operation', '=', 'create')]"/>
+                <filter string="Modified" name="modified" domain="[('operation', '=', 'write')]"/>
+                <filter string="Deleted" name="deleted" domain="[('operation', '=', 'unlink')]"/>
+                <separator/>
+                <filter string="Today" name="today" 
+                    domain="[('timestamp', '>=', datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))]"/>
+                <filter string="This Week" name="week" 
+                    domain="[('timestamp', '>=', (datetime.datetime.now() - datetime.timedelta(days=7)))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Ticket" name="group_ticket" context="{'group_by': 'ticket_id'}"/>
+                    <filter string="User" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Operation" name="group_operation" context="{'group_by': 'operation'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'timestamp:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action for Audit Log -->
+    <record id="helpdesk_ticket_audit_log_action" model="ir.actions.act_window">
+        <field name="name">Ticket Audit Log</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">helpdesk.ticket.audit.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="helpdesk_ticket_audit_log_view_search"/>
+        <field name="context">{'search_default_week': 1}</field>
+    </record>
+</odoo>
