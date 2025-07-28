@@ -1,6 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-tile_user,tile_user,model_tile_tile,helpdesk_lui.group_helpdesk_manager,1,1,1,1
-tile_user_category,tile_user,model_tile_category,helpdesk_lui.group_helpdesk_manager,1,1,1,1
-
-tile_user,tile_user,model_tile_tile,helpdesk_lui.group_helpdesk_user_own,1,1,1,0
-tile_user_category,tile_user,model_tile_category,helpdesk_lui.group_helpdesk_user_own,1,1,1,0
+tile_user,tile_manager,model_tile_tile,helpdesk_lui.group_helpdesk_manager,1,1,1,1
+tile_user_category,tile_user_manager,model_tile_category,helpdesk_lui.group_helpdesk_manager,1,1,1,1
+tile_user,tile_user,model_tile_tile,helpdesk_lui.group_helpdesk_user,1,1,1,0
+tile_user_category,tile_user,model_tile_category,helpdesk_lui.group_helpdesk_user,1,1,1,0
+ir_model_user,ir.model user access,base.model_ir_model,helpdesk_lui.group_helpdesk_user,1,1,0,0
+ir_model_manager,ir.model manager access,base.model_ir_model,helpdesk_lui.group_helpdesk_manager,1,1,1,1

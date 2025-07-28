@@ -177,7 +177,7 @@ class HelpdeskTicket(models.Model):
         comodel_name="res.partner",
         string="Customer",
         tracking=True,
-        domain="[('customer_rank', '>', 0)]",
+        # domain="[('customer_rank', '>', 0)]",
     )
 
     checkbox = fields.Boolean(string="Checkbox", default=False, compute="_compute_checkbox", store=True, readonly=False)
@@ -426,7 +426,7 @@ class HelpdeskTicket(models.Model):
     def action_view_ticket(self):
         """Membuka tampilan tiket dari dashboard dengan filter yang sesuai."""
         self.ensure_one()
-        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action_form_readonly').read()[0]
+        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action_form_readonly').sudo().read()[0]
         
         context = self.env.context.copy()
         

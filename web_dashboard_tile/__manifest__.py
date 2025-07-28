@@ -2,6 +2,7 @@
     "name": "Display Helpdesk",
     "version": "16.0.1.0.2",
     "depends": [
+        "base",
         "web",
         "account",
         "spreadsheet_dashboard",
