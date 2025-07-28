@@ -296,7 +296,7 @@ class HelpdeskTicket(models.Model):
     def name_get(self):
         res = []
         for rec in self:
-            res.append((rec.id, rec.number + " - " + rec.name))
+            res.append((rec.id, rec.number + " - " + rec.partner_id.name))
         return res
 
     def assign_to_me(self):
@@ -426,7 +426,7 @@ class HelpdeskTicket(models.Model):
     def action_view_ticket(self):
         """Membuka tampilan tiket dari dashboard dengan filter yang sesuai."""
         self.ensure_one()
-        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action').read()[0]
+        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action_form_readonly').read()[0]
         
         context = self.env.context.copy()
         
