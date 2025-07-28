@@ -136,22 +136,22 @@ class HelpdeskTicket(models.Model):
 
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
-    name = fields.Char(string="Title/Issue", required=False, tracking=True)
+    name = fields.Char(string="Title", required=False, tracking=True)
     description = fields.Html(required=False, sanitize_style=True, tracking=True)
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
-        string="Main Assigned Employee",
+        string="Main Technical",
         tracking=True,
         index=True,
     )
     assigned_employee_ids = fields.Many2many(
         comodel_name="hr.employee",
-        string="Assigned Employees",
+        string="Technical",
         tracking=True,
     )
     stage_id = fields.Many2one(
         comodel_name="helpdesk.ticket.stage",
-        string="Stage",
+        string="Status",
         compute="_compute_stage_id",
         store=True,
         readonly=False,
@@ -177,6 +177,7 @@ class HelpdeskTicket(models.Model):
         comodel_name="res.partner",
         string="Customer",
         tracking=True,
+        domain="[('customer_rank', '>', 0)]",
     )
 
     checkbox = fields.Boolean(string="Checkbox", default=False, compute="_compute_checkbox", store=True, readonly=False)
@@ -238,17 +239,17 @@ class HelpdeskTicket(models.Model):
     active = fields.Boolean(default=True)
     
     due_date = fields.Date(
-        string="Due Date", 
+        string="Due", 
         tracking=True,
         compute="_compute_due_date",
         store=True,
         readonly=True
     )
-    tsr_file = fields.Binary(string="Upload TSR", attachment=True)
+    tsr_file = fields.Binary(string="TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
-    time_start = fields.Datetime(string="Start Time", copy=False, tracking=True) 
-    time_end = fields.Datetime(string="End Time", copy=False, tracking=True)
+    time_start = fields.Datetime(string="Start", copy=False, tracking=True) 
+    time_end = fields.Datetime(string="End", copy=False, tracking=True)
     
     is_due_date_passed = fields.Boolean(
         string="Is Due Date Passed",

@@ -11,7 +11,7 @@
     </record>
 
     <record id="group_helpdesk_user" model="res.groups">
-        <field name="name">Helpdesk: Admin</field>
+        <field name="name">Helpdesk: User</field>
         <field name="category_id" ref="helpdesk_lui_category" />
         <field name="implied_ids" eval="[(4, ref('group_helpdesk_user_own'))]" />
     </record>
@@ -33,10 +33,10 @@
         <field name="domain_force">[(1, '=', 1)]</field>
     </record>
 
-    <!-- <record id="helpdesk_ticket_rule_own" model="ir.rule">
+    <record id="helpdesk_ticket_rule_own" model="ir.rule">
         <field name="name">Own Helpdesk Tickets</field>
         <field name="model_id" ref="model_helpdesk_ticket" />
         <field name="groups" eval="[(4, ref('group_helpdesk_user_own'))]" />
         <field name="domain_force">[('employee_id', '=', user.employee_ids.id)]</field>
-    </record> -->
+    </record>
 </odoo> 

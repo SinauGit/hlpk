@@ -1,5 +1,3 @@
-# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-
 {
     "name": "Helpdesk LUI",
     "summary": "Custom Helpdesk Module for LUI",
