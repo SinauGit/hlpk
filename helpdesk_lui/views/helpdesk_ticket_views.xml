@@ -88,7 +88,6 @@
             <tree editable="top">
                 <field name="sequence" invisible="1" widget="handle" />
                 <field name="is_stage_done" invisible="1"/>
-                <field name="is_today" invisible="1" />
                 <field name="number" decoration-bf="1" readonly="1" optional="hide"/>
                 <field name="name" optional="show" 
                        attrs="{'readonly': [('checkbox', '=', True)]}"/>
@@ -133,7 +132,6 @@
             <tree create="false" edit="false">
                 <field name="sequence" invisible="1" widget="handle" />
                 <field name="is_stage_done" invisible="1"/>
-                <field name="is_today" invisible="1" />
                 <field name="number" decoration-bf="1" optional="hide"/>
                 <field name="name" optional="show"/>
                 <field name="partner_id" optional="show"/>

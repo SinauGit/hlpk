@@ -124,15 +124,28 @@ class HelpdeskTicket(models.Model):
                 ('active', '=', True)
             ])
 
-    is_today = fields.Boolean(string="today", compute="_compute_is_today", store=True)
+    today_date = fields.Date(
+        string='Today',
+        compute='_compute_today_date',
+        store=False
+    )
+
+    time_start_date = fields.Date(
+        string='Start Date Only',
+        compute='_compute_time_start_date',
+        store=True
+    )
+
     @api.depends('time_start')
-    def _compute_is_today(self):
+    def _compute_time_start_date(self):
         for rec in self:
-            if rec.time_start:
-                today = fields.Date.context_today(self)
-                rec.is_today = rec.time_start.date() == today
-            else:
-                rec.is_today = False
+            rec.time_start_date = rec.time_start.date() if rec.time_start else False
+
+
+    @api.depends_context('date')
+    def _compute_today_date(self):
+        for rec in self:
+            rec.today_date = fields.Date.context_today(rec)
 
 
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)

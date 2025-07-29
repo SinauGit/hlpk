@@ -1,6 +1,5 @@
 {
     "name": "Helpdesk LUI",
-    "summary": "Custom Helpdesk Module for LUI",
     "version": "16.0.1.0.0",
     "license": "AGPL-3",
     "website": "",
