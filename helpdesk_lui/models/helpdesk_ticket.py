@@ -12,20 +12,20 @@ class HelpdeskTicket(models.Model):
     _rec_names_search = ["number", "name"]
     _order = "priority desc, sequence, number desc, id desc"
 
-    @api.constrains('name')
-    def _check_name_duplicate(self):
-        for record in self:
-            if not record.name:
-                continue
+    # @api.constrains('name')
+    # def _check_name_duplicate(self):
+    #     for record in self:
+    #         if not record.name:
+    #             continue
             
-            domain = [
-                ('id', '!=', record.id),
-                ('name', '=ilike', record.name)
-            ]
+    #         domain = [
+    #             ('id', '!=', record.id),
+    #             ('name', '=ilike', record.name)
+    #         ]
             
-            duplicate = self.search(domain, limit=1)
-            if duplicate:
-                raise ValidationError(_("A ticket with the same title already exists."))
+    #         duplicate = self.search(domain, limit=1)
+    #         if duplicate:
+    #             raise ValidationError(_("A ticket with the same title already exists."))
 
     # Dashboard fields - for kanban view
     unassigned_tickets = fields.Integer(
