@@ -309,7 +309,20 @@ class HelpdeskTicket(models.Model):
     def name_get(self):
         res = []
         for rec in self:
-            res.append((rec.id, rec.number + " - " + rec.partner_id.name))
+            # Safely build a display name even if partner or number is missing
+            number = rec.number or rec.name or ""
+            partner_name = False
+            # Avoid forcing name_get on partner if empty
+            if rec.partner_id:
+                # Prefer display_name; fall back to name; both may be False
+                partner_name = rec.partner_id.display_name or rec.partner_id.name or False
+
+            if partner_name:
+                display = f"{number or _('Ticket')} - {partner_name}"
+            else:
+                display = number or _("Ticket")
+
+            res.append((rec.id, display))
         return res
 
     def assign_to_me(self):
