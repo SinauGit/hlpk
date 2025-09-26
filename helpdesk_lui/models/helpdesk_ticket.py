@@ -2,7 +2,7 @@ from odoo import _, api, fields, models, tools
 from odoo.exceptions import ValidationError, UserError
 from datetime import datetime, timedelta
 import json
-
+import re
 
 class HelpdeskTicket(models.Model):
     _name = "helpdesk.ticket"
@@ -11,21 +11,6 @@ class HelpdeskTicket(models.Model):
     _rec_name = "number"
     _rec_names_search = ["number", "name"]
     _order = "priority desc, sequence, number desc, id desc"
-
-    # @api.constrains('name')
-    # def _check_name_duplicate(self):
-    #     for record in self:
-    #         if not record.name:
-    #             continue
-            
-    #         domain = [
-    #             ('id', '!=', record.id),
-    #             ('name', '=ilike', record.name)
-    #         ]
-            
-    #         duplicate = self.search(domain, limit=1)
-    #         if duplicate:
-    #             raise ValidationError(_("A ticket with the same title already exists."))
 
     # Dashboard fields - for kanban view
     unassigned_tickets = fields.Integer(
@@ -151,6 +136,70 @@ class HelpdeskTicket(models.Model):
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
     name = fields.Char(string="Title", required=False, tracking=True)
     description = fields.Html(required=False, sanitize_style=True, tracking=True)
+
+    def _clean_html_tags(self, html_content):
+        """Remove HTML tags and normalize whitespace for comparison"""
+        if not html_content:
+            return ''
+        
+        # Remove HTML tags
+        clean_text = re.sub('<[^<]+?>', '', html_content)
+        # Normalize whitespace
+        clean_text = ' '.join(clean_text.split())
+        return clean_text.strip()
+    
+    @api.constrains('name', 'description')
+    def _check_name_description_duplicate(self):
+        for record in self:
+            # Skip validation if both name and description are empty
+            if not record.name and not record.description:
+                continue
+            
+            # Prepare search domain
+            domain = [('id', '!=', record.id)]
+            
+            # Add name condition if name exists
+            if record.name:
+                domain.append(('name', '=ilike', record.name.strip()))
+            else:
+                domain.append(('name', '=', False))
+            
+            # Check for records with same name first
+            duplicates = self.search(domain, limit=50)  # Limit for performance
+            
+            if duplicates:
+                # If name matches, check description for exact duplicate
+                for duplicate in duplicates:
+                    # Clean and compare descriptions
+                    record_desc_clean = self._clean_html_tags(record.description).lower() if record.description else ''
+                    duplicate_desc_clean = self._clean_html_tags(duplicate.description).lower() if duplicate.description else ''
+                    
+                    # Both descriptions are empty or both have same content
+                    if record_desc_clean == duplicate_desc_clean:
+                        if record.name and duplicate.name:
+                            raise ValidationError(_(
+                                "A ticket with the same title and description already exists.\n"
+                                "Existing ticket: '%s'"
+                            ) % duplicate.name)
+                        else:
+                            raise ValidationError(_(
+                                "A ticket with the same title and description already exists."
+                            ))
+    
+    @api.model
+    def create(self, vals):
+        """Override create to ensure validation runs"""
+        record = super().create(vals)
+        record._check_name_description_duplicate()
+        return record
+    
+    def write(self, vals):
+        """Override write to ensure validation runs"""
+        result = super().write(vals)
+        if 'name' in vals or 'description' in vals:
+            self._check_name_description_duplicate()
+        return result
+
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Main Technical",
