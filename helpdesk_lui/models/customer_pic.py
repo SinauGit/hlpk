@@ -9,7 +9,7 @@ class CustomerPIC(models.Model):
         string='Customer',
         required=True,
         index=True,
-        # domain="[('customer_rank', '>', 0)]",
+        domain="[('customer_rank', '>', 1)]",
     )
     employee_ids = fields.Many2many(
         'hr.employee',

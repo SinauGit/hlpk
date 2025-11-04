@@ -5,6 +5,13 @@
         <field name="sequence">1</field>
     </record>
 
+    <!-- NEW: Group untuk Customer -->
+    <record id="group_helpdesk_customer" model="res.groups">
+        <field name="name">Helpdesk: Customer Access</field>
+        <field name="category_id" ref="helpdesk_lui_category" />
+        <field name="comment">Customer can only view their own tickets</field>
+    </record>
+
     <record id="group_helpdesk_user_own" model="res.groups">
         <field name="name">Helpdesk: Technical Readonly</field>
         <field name="category_id" ref="helpdesk_lui_category" />
@@ -26,6 +33,7 @@
         />
     </record>
 
+    <!-- EXISTING RULES -->
     <record id="helpdesk_ticket_rule_all" model="ir.rule">
         <field name="name">All Helpdesk Tickets</field>
         <field name="model_id" ref="model_helpdesk_ticket" />
@@ -39,4 +47,56 @@
         <field name="groups" eval="[(4, ref('group_helpdesk_user_own'))]" />
         <field name="domain_force">[('employee_id', '=', user.employee_ids.id)]</field>
     </record>
-</odoo> 
+
+    <!-- NEW: Record Rule untuk Customer - Hanya lihat ticket mereka sendiri -->
+    <record id="helpdesk_ticket_rule_customer" model="ir.rule">
+        <field name="name">Customer Own Tickets Only</field>
+        <field name="model_id" ref="model_helpdesk_ticket" />
+        <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
+        <field name="domain_force">[('partner_id', '=', user.partner_id.commercial_partner_id.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- NEW: Rule untuk Customer PIC - Customer tidak bisa lihat config PIC -->
+    <record id="customer_pic_rule_no_customer" model="ir.rule">
+        <field name="name">Customer Cannot See PIC Config</field>
+        <field name="model_id" ref="model_customer_pic" />
+        <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
+        <field name="domain_force">[(0, '=', 1)]</field>
+    </record>
+
+    <!-- NEW: Rule untuk Category - Customer bisa lihat semua category -->
+    <record id="helpdesk_category_rule_customer" model="ir.rule">
+        <field name="name">Customer Can See Categories</field>
+        <field name="model_id" ref="model_helpdesk_ticket_category" />
+        <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- NEW: Rule untuk Stage - Customer bisa lihat semua stage -->
+    <record id="helpdesk_stage_rule_customer" model="ir.rule">
+        <field name="name">Customer Can See Stages</field>
+        <field name="model_id" ref="model_helpdesk_ticket_stage" />
+        <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- NEW: Rule untuk Audit Log - Customer tidak bisa lihat audit log -->
+    <record id="helpdesk_audit_log_rule_customer" model="ir.rule">
+        <field name="name">Customer Cannot See Audit Log</field>
+        <field name="model_id" ref="model_helpdesk_ticket_audit_log" />
+        <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
+        <field name="domain_force">[(0, '=', 1)]</field>
+    </record>
+</odoo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard Form View -->
+    <record id="create_customer_user_wizard_form" model="ir.ui.view">
+        <field name="name">create.customer.user.wizard.form</field>
+        <field name="model">create.customer.user.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Customer User">
+                <group>
+                    <field name="partner_id" options="{'no_create': True}"/>
+                    <field name="login"/>
+                    <field name="send_reset_password"/>
+                </group>
+                <footer>
+                    <button name="action_create_user" 
+                            string="Create User" 
+                            type="object" 
+                            class="btn-primary"/>
+                    <button string="Cancel" 
+                            class="btn-secondary" 
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_create_customer_user_wizard" model="ir.actions.act_window">
+        <field name="name">Create Customer User</field>
+        <field name="res_model">create.customer.user.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Add button to Partner form view -->
+    <record id="view_partner_form_helpdesk_customer" model="ir.ui.view">
+        <field name="name">res.partner.form.helpdesk.customer</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <field name="email" position="after">
+                <field name="customer_rank" invisible="1"/>
+                <field name="user_ids" invisible="1"/>
+            </field>
+            
+            <div name="button_box" position="inside">
+                <button name="action_create_helpdesk_user" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-user-plus"
+                        attrs="{'invisible': ['|', ('customer_rank', '=', 0), ('user_ids', '!=', [])]}"
+                        groups="helpdesk_lui.group_helpdesk_manager">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Create</span>
+                        <span class="o_stat_text">Portal Acess</span>
+                    </div>
+                </button>
+                <button name="%(helpdesk_lui.helpdesk_ticket_list_customer_action)d" 
+                        type="action" 
+                        class="oe_stat_button" 
+                        icon="fa-ticket"
+                        attrs="{'invisible': [('customer_rank', '=', 0)]}"
+                        context="{'search_default_partner_id': active_id}"
+                        groups="helpdesk_lui.group_helpdesk_user">
+                    <div class="o_stat_info">
+                        <field name="is_helpdesk_customer" invisible="1"/>
+                        <span class="o_stat_text">View</span>
+                        <span class="o_stat_text">Tickets</span>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+
+    <!-- Menu item for wizard -->
+    <menuitem
+        id="menu_create_customer_user"
+        name="Create Customer Users"
+        parent="helpdesk_lui.helpdesk_ticket_config_main_menu"
+        action="action_create_customer_user_wizard"
+        sequence="60"
+        groups="helpdesk_lui.group_helpdesk_manager"/>
+
+</odoo>

@@ -239,7 +239,7 @@ class HelpdeskTicket(models.Model):
         comodel_name="res.partner",
         string="Customer",
         tracking=True,
-        # domain="[('customer_rank', '>', 0)]",
+        domain="[('customer_rank', '>', 1)]",
     )
 
     checkbox = fields.Boolean(string="Checkbox", default=False, compute="_compute_checkbox", store=True, readonly=False)
