@@ -63,7 +63,7 @@ class HelpdeskTicket(models.Model):
                 ('active', '=', True)
             ])
 
-    @api.depends("partner_id", "stage_id", "employee_id", "unattended", "closed", "priority")
+    @api.depends("partner_id", "stage_id", "assigned_employee_ids", "unattended", "closed", "priority")
     def _compute_dashboard_counts(self):
         for record in self:
             partner_id = record.partner_id.id if record.partner_id else False
@@ -78,7 +78,7 @@ class HelpdeskTicket(models.Model):
             
             record.unassigned_tickets = self.search_count([
                 ('partner_id', '=', partner_id),
-                ('employee_id', '=', False),
+                ('assigned_employee_ids', '=', False),
                 ('active', '=', True)
             ])
             
@@ -91,7 +91,7 @@ class HelpdeskTicket(models.Model):
             if self.env.user.employee_ids:
                 record.assigned_tickets = self.search_count([
                     ('partner_id', '=', partner_id),
-                    ('employee_id', 'in', self.env.user.employee_ids.ids),
+                    ('assigned_employee_ids', 'in', self.env.user.assigned_employee_ids.ids),
                     ('active', '=', True)
                 ])
             else:
@@ -310,6 +310,7 @@ class HelpdeskTicket(models.Model):
     tsr_file = fields.Binary(string="TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
     
+    noted= fields.Html(required=False, sanitize_style=True, tracking=True)
     time_start = fields.Datetime(string="Start", copy=False, tracking=True) 
     time_end = fields.Datetime(string="End", copy=False, tracking=True)
     

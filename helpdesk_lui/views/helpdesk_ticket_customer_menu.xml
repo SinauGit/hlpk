@@ -1,21 +1,18 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <odoo>
-    <!-- Action untuk List Tickets Customer -->
+    <!-- Action untuk List Tickets Customer - HANYA TREE VIEW -->
     <record id="helpdesk_ticket_list_customer_action" model="ir.actions.act_window">
         <field name="name">My Tickets</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">helpdesk.ticket</field>
         <field name="view_mode">tree</field>
-        <field name="view_id" ref="helpdesk_ticket_view_tree_editable"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('helpdesk_ticket_view_tree_customer')})]"/>
         <field name="context">{
             'create': False,
-            'edit': False,
             'delete': False,
             'search_default_open': 1
         }</field>
-        <!-- <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('helpdesk_ticket_view_tree_customer')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('helpdesk_ticket_view_form_customer')})]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
                 No tickets found
@@ -23,8 +20,9 @@
             <p>
                 Your support tickets will appear here once created by our support team.
             </p>
-        </field> -->
+        </field>
     </record>
+
 
     <!-- Menu untuk Customer -->
     <menuitem
@@ -32,7 +30,6 @@
         name="Support Tickets"
         sequence="16"
         web_icon="helpdesk_lui,static/description/icon.png"
-        groups="group_helpdesk_customer"
     />
 
     <!-- Dashboard Menu untuk Customer -->

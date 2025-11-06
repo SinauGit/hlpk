@@ -18,7 +18,7 @@
         "views/helpdesk_ticket_menu.xml",
         # "views/helpdesk_ticket_customer_views.xml",
         "views/helpdesk_ticket_customer_menu.xml",
-        "views/create_customer_user_wizard_views.xml",
+        # "views/create_customer_user_wizard_views.xml",
     ],
     "assets": {
         "web.assets_backend": [

@@ -13,11 +13,11 @@ class TileCategory(models.Model):
     active = fields.Boolean(default=True)
 
     action_id = fields.Many2one(
-        string="Odoo Action", comodel_name="ir.actions.act_window", readonly=True
+        string="Odoo Action", comodel_name="ir.actions.act_window"
     )
 
     menu_id = fields.Many2one(
-        string="Odoo Menu", comodel_name="ir.ui.menu", readonly=True
+        string="Odoo Menu", comodel_name="ir.ui.menu"
     )
 
     tile_ids = fields.One2many(
