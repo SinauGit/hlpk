@@ -19,9 +19,9 @@ class HelpdeskTicket(models.Model):
     unattended_tickets = fields.Integer(
         compute="_compute_dashboard_counts"
     )
-    assigned_tickets = fields.Integer(
-        compute="_compute_dashboard_counts"
-    )
+    # assigned_tickets = fields.Integer(
+    #     compute="_compute_dashboard_counts"
+    # )
     open_tickets = fields.Integer(
         compute="_compute_dashboard_counts"
     )
@@ -71,7 +71,7 @@ class HelpdeskTicket(models.Model):
             if not partner_id:
                 record.unassigned_tickets = 0
                 record.unattended_tickets = 0
-                record.assigned_tickets = 0
+                # record.assigned_tickets = 0
                 record.open_tickets = 0
                 record.high_priority_tickets = 0
                 continue
@@ -88,14 +88,14 @@ class HelpdeskTicket(models.Model):
                 ('active', '=', True)
             ])
             
-            if self.env.user.employee_ids:
-                record.assigned_tickets = self.search_count([
-                    ('partner_id', '=', partner_id),
-                    ('assigned_employee_ids', 'in', self.env.user.assigned_employee_ids.ids),
-                    ('active', '=', True)
-                ])
-            else:
-                record.assigned_tickets = 0
+            # if self.env.user.employee_ids:
+            #     record.assigned_tickets = self.search_count([
+            #         ('partner_id', '=', partner_id),
+            #         ('assigned_employee_ids', 'in', self.env.user.assigned_employee_ids.ids),
+            #         ('active', '=', True)
+            #     ])
+            # else:
+            #     record.assigned_tickets = 0
                 
             record.open_tickets = self.search_count([
                 ('partner_id', '=', partner_id),

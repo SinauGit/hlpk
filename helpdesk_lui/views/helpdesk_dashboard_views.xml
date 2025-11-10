@@ -16,7 +16,7 @@
                 <field name="unattended_tickets" />
                 <field name="open_tickets" />
                 <field name="high_priority_tickets" />
-                <field name="assigned_tickets" />
+                <!-- <field name="assigned_tickets" /> -->
                 <field name="partner_id" />
                 <field name="customer_ticket_count" />
                 <templates>

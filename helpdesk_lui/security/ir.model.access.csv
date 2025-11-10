@@ -7,7 +7,7 @@ access_helpdesk_ticket_customer,Helpdesk Ticket Customer,model_helpdesk_ticket,g
 access_helpdesk_ticket_stage_user_own,Helpdesk Ticket Stage User Own,model_helpdesk_ticket_stage,group_helpdesk_user_own,1,0,0,0
 access_helpdesk_ticket_stage_user,Helpdesk Ticket Stage User,model_helpdesk_ticket_stage,group_helpdesk_user,1,1,1,0
 access_helpdesk_ticket_stage_manager,Helpdesk Ticket Stage Manager,model_helpdesk_ticket_stage,group_helpdesk_manager,1,1,1,1
-access_helpdesk_ticket_stage_customer,Helpdesk Ticket Stage Customer,model_helpdesk_ticket_stage,group_helpdesk_customer,1,0,0,0
+access_helpdesk_ticket_stage_customer,Helpdesk Ticket Stage Customer,model_helpdesk_ticket_stage,group_helpdesk_customer,1,1,0,0
 
 access_helpdesk_ticket_category_user_own,Helpdesk Ticket Category User Own,model_helpdesk_ticket_category,group_helpdesk_user_own,1,0,0,0
 access_helpdesk_ticket_category_user,Helpdesk Ticket Category User,model_helpdesk_ticket_category,group_helpdesk_user,1,1,1,0
@@ -19,7 +19,7 @@ access_customer_pic_user,Customer PIC User,model_customer_pic,group_helpdesk_use
 access_customer_pic_manager,Customer PIC Manager,model_customer_pic,group_helpdesk_manager,1,1,1,1
 access_customer_pic_customer,Customer PIC Customer,model_customer_pic,group_helpdesk_customer,0,0,0,0
 
-access_helpdesk_ticket_audit_log_user_own,Helpdesk Ticket Audit Log User Own,model_helpdesk_ticket_audit_log,group_helpdesk_user_own,1,0,0,0
-access_helpdesk_ticket_audit_log_user,Helpdesk Ticket Audit Log User,model_helpdesk_ticket_audit_log,group_helpdesk_user,1,0,0,0
+access_helpdesk_ticket_audit_log_user_own,Helpdesk Ticket Audit Log User Own,model_helpdesk_ticket_audit_log,group_helpdesk_user_own,1,1,1,0
+access_helpdesk_ticket_audit_log_user,Helpdesk Ticket Audit Log User,model_helpdesk_ticket_audit_log,group_helpdesk_user,1,1,1,0
 access_helpdesk_ticket_audit_log_manager,Helpdesk Ticket Audit Log Manager,model_helpdesk_ticket_audit_log,group_helpdesk_manager,1,1,1,1
 access_helpdesk_ticket_audit_log_customer,Helpdesk Ticket Audit Log Customer,model_helpdesk_ticket_audit_log,group_helpdesk_customer,0,0,0,0
