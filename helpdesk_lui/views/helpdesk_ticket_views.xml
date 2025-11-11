@@ -101,7 +101,6 @@
                     <field name="assigned_employee_ids" widget="many2many_tags" optional="show"
                         decoration-bf="1" decoration-muted="1"
                         attrs="{'readonly': [('checkbox', '=', True)]}"/>
-                    <field name="noted" decoration-bf="1" optional="show"/>
                     <field name="category_id" options="{'color_field': 'html_color'}" optional="show"
                         decoration-bf="1"
                         groups="helpdesk_lui.group_helpdesk_user"
@@ -130,6 +129,13 @@
                         decoration-info="stage_id and not closed and not is_stage_done"
                         attrs="{'readonly': [('checkbox', '=', True)]}"/>
 
+                    <field name="report_by" decoration-bf="1" optional="hide" />
+                    <field name="upload_ba" filename="upload_ba_filename" widget="binary"
+                        decoration-bf="1" optional="hide"/>
+                    <field name="upload_ba_filename" invisible="1"/>
+                    <field name="report_date" decoration-bf="1" optional="hide"/>
+                     <field name="bank" decoration-bf="1" optional="hide"/>
+
                     <field name="checkbox" optional="hide" decoration-bf="1"/>
                     <field name="create_date" widget="remaining_days" readonly="1" optional="hide" decoration-bf="1"/>
                     <field name="last_stage_update" widget="remaining_days" optional="hide" readonly="1" decoration-bf="1" 
@@ -143,35 +149,40 @@
             </field>
         </record>
 
-        <!-- VIEW KHUSUS CUSTOMER: Tree view editable hanya untuk field noted -->
+        <!-- VIEW KHUSUS CUSTOMER: Tree view editable-->
         <record id="helpdesk_ticket_view_tree_customer" model="ir.ui.view">
             <field name="name">helpdesk.ticket.view.tree.customer</field>
             <field name="model">helpdesk.ticket</field>
             <field name="arch" type="xml">
-                <tree editable="top" create="0" delete="0">
+                <tree editable="top" delete="0">
                     <field name="is_stage_done" invisible="1" decoration-bf="1"/>
                     <field name="is_due_date_red" invisible="1" decoration-bf="1"/>
                     <field name="closed" invisible="1" decoration-bf="1"/>
-                    
-                    <field name="name" optional="show" decoration-bf="1" readonly="1"/>
+                    <field name="title_type" string ="Title" decoration-bf="1" 
+                    attrs="{'readonly': [('id', '!=', False)]}"/>
+                    <field name="report_by" decoration-bf="1" optional="hide" 
+                        attrs="{'readonly': [('id', '!=', False)]}"/>
+
+                    <field name="upload_ba" filename="upload_ba_filename" widget="binary"
+                        decoration-bf="1" optional="hide"
+                        attrs="{'readonly': [('id', '!=', False)]}"/>
+
+                    <field name="upload_ba_filename" invisible="1"/>
+
+                    <field name="report_date" decoration-bf="1" optional="hide"
+                        attrs="{'readonly': [('id', '!=', False)]}"/>
+
+                    <field name="bank" decoration-bf="1" optional="hide"
+                        attrs="{'readonly': [('id', '!=', False)]}"/>
                     <field name="assigned_employee_ids" widget="many2many_tags" optional="show"
                         decoration-bf="1" decoration-muted="1" readonly="1"/>
-                    
-                    <!-- Field noted: SATU-SATUNYA field yang bisa diedit customer -->
-                    <field name="noted" decoration-bf="1" optional="show"/>
-                    
                     <field name="time_start" optional="show" decoration-bf="1" readonly="1"/>
                     <field name="description" optional="show" decoration-bf="1" readonly="1"/>
                     <field name="time_end" optional="show" decoration-bf="1" readonly="1"/>
-                    <field name="due_date" optional="show" decoration-bf="1" 
-                        decoration-danger="is_due_date_red" readonly="1"/>
-                    
                     <field name="stage_id" optional="show" decoration-bf="1"
                         decoration-success="is_stage_done"
                         decoration-info="stage_id and not closed and not is_stage_done"
-                        readonly="1"/>
-                    
-                    <field name="create_date" widget="remaining_days" readonly="1" optional="hide" decoration-bf="1"/>
+                        readonly="1" options="{'no_open': True}"/>
                 </tree>
             </field>
         </record>

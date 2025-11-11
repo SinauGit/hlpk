@@ -132,9 +132,74 @@ class HelpdeskTicket(models.Model):
         for rec in self:
             rec.today_date = fields.Date.context_today(rec)
 
+    report_by = fields.Char(
+        string="Report By",
+        tracking=True
+    )
+    
+    bank = fields.Char(
+        string="Bank",
+        tracking=True
+    )
 
+    upload_ba = fields.Binary(
+        string="Upload BA",
+        attachment=True,
+        tracking=True
+    )
+    
+    upload_ba_filename = fields.Char(
+        string="BA Filename"
+    )
+    
+    report_date = fields.Datetime(
+        string="Report Date",
+        default=fields.Datetime.now,
+        tracking=True
+    )
     number = fields.Char(string="Ticket Odoo", default="/", readonly=True)
     name = fields.Char(string="Title", required=False, tracking=True)
+    title_type = fields.Selection(
+        selection=[
+            ('drc_serpong', 'DRC Serpong'),
+            ('dc_sentul', 'DC Sentul'),
+            ('dc_surabaya', 'DC Surabaya'),
+        ],
+        string="Title Type",
+        tracking=True
+    )
+
+    def _get_title_type_label(self, title_type_value):
+        """Get label from title_type selection"""
+        if not title_type_value:
+            return False
+        
+        selection_list = [
+            ('drc_serpong', 'DRC Serpong'),
+            ('dc_sentul', 'DC Sentul'),
+            ('dc_surabaya', 'DC Surabaya'),
+        ]
+        
+        for key, label in selection_list:
+            if key == title_type_value:
+                return label
+        return False
+
+    @api.onchange('title_type')
+    def _onchange_title_type(self):
+        """Auto-fill name from title_type if name is empty"""
+        if self.title_type and not self.name:
+            self.name = self._get_title_type_label(self.title_type)
+
+    # @api.constrains('partner_id')
+    # def _check_partner_id_customer(self):
+    #     """Prevent customer from creating/modifying tickets for other partners"""
+    #     if self.env.user.has_group('helpdesk_lui.group_helpdesk_customer'):
+    #         for record in self:
+    #             if record.partner_id.id != self.env.user.partner_id.commercial_partner_id.id:
+    #                 raise ValidationError(_(
+    #                     "You can only create tickets for your own company."
+    #                 ))
     description = fields.Html(required=False, sanitize_style=True, tracking=True)
 
     def _clean_html_tags(self, html_content):
@@ -165,40 +230,85 @@ class HelpdeskTicket(models.Model):
                 domain.append(('name', '=', False))
             
             # Check for records with same name first
-            duplicates = self.search(domain, limit=50)  # Limit for performance
+            # duplicates = self.search(domain, limit=50)  # Limit for performance
             
-            if duplicates:
-                # If name matches, check description for exact duplicate
-                for duplicate in duplicates:
-                    # Clean and compare descriptions
-                    record_desc_clean = self._clean_html_tags(record.description).lower() if record.description else ''
-                    duplicate_desc_clean = self._clean_html_tags(duplicate.description).lower() if duplicate.description else ''
+            # if duplicates:
+            #     # If name matches, check description for exact duplicate
+            #     for duplicate in duplicates:
+            #         # Clean and compare descriptions
+            #         record_desc_clean = self._clean_html_tags(record.description).lower() if record.description else ''
+            #         duplicate_desc_clean = self._clean_html_tags(duplicate.description).lower() if duplicate.description else ''
                     
-                    # Both descriptions are empty or both have same content
-                    if record_desc_clean == duplicate_desc_clean:
-                        if record.name and duplicate.name:
-                            raise ValidationError(_(
-                                "A ticket with the same title and description already exists.\n"
-                                "Existing ticket: '%s'"
-                            ) % duplicate.name)
-                        else:
-                            raise ValidationError(_(
-                                "A ticket with the same title and description already exists."
-                            ))
+            #         # Both descriptions are empty or both have same content
+            #         if record_desc_clean == duplicate_desc_clean:
+            #             if record.name and duplicate.name:
+            #                 raise ValidationError(_(
+            #                     "A ticket with the same title and description already exists.\n"
+            #                     "Existing ticket: '%s'"
+            #                 ) % duplicate.name)
+            #             else:
+            #                 raise ValidationError(_(
+            #                     "A ticket with the same title and description already exists."
+            #                 ))
     
-    @api.model
-    def create(self, vals):
-        """Override create to ensure validation runs"""
-        record = super().create(vals)
-        record._check_name_description_duplicate()
-        return record
-    
-    def write(self, vals):
-        """Override write to ensure validation runs"""
-        result = super().write(vals)
-        if 'name' in vals or 'description' in vals:
-            self._check_name_description_duplicate()
-        return result
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            # === LOGIC BARU: Auto-fill partner_id untuk customer ===
+            if not vals.get('partner_id'):
+                current_user = self.env.user
+                
+                # Cek apakah user adalah customer
+                if current_user.has_group('helpdesk_lui.group_helpdesk_customer'):
+                    if current_user.partner_id:
+                        vals['partner_id'] = current_user.partner_id.id
+            
+            # === LOGIC BARU: Auto-convert title_type to name ===
+            if not vals.get('name') and vals.get('title_type'):
+                vals['name'] = self._get_title_type_label(vals['title_type'])
+            
+            # === LOGIC LAMA: Prepare ticket number ===
+            vals.update(self._prepare_ticket_number(vals))
+            
+            if not vals.get("employee_id"):
+                vals.update({"assigned_date": fields.Datetime.now()})
+            
+            # === LOGIC LAMA: Auto-assign employee dari customer PIC ===
+            if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
+                pic = self.env['customer.pic'].search([
+                    ('partner_id', '=', vals.get('partner_id')),
+                    ('active', '=', True)
+                ], limit=1)
+                if pic and pic.employee_ids:
+                    vals['assigned_employee_ids'] = [(6, 0, pic.employee_ids.ids)]
+                    if not vals.get('employee_id') and pic.employee_ids:
+                        vals['employee_id'] = pic.employee_ids[0].id
+            
+            # === LOGIC LAMA: Set default stage ===
+            if not vals.get('stage_id'):
+                new_stage = self.env["helpdesk.ticket.stage"].search([
+                    ("name", "=", "New"),
+                    ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
+                ], limit=1)
+                if new_stage:
+                    vals['stage_id'] = new_stage.id
+            
+            # === LOGIC LAMA: Stage updates from time ===
+            stage_updates = self._get_stage_updates_from_time_create(vals)
+            if stage_updates:
+                vals.update(stage_updates)
+            
+        tickets = super().create(vals_list)
+        
+        # === LOGIC LAMA: Create audit log ===
+        for ticket in tickets:
+            self._create_audit_log(ticket, 'create', {}, ticket.read()[0])
+        
+        # === LOGIC BARU: Check duplicate ===
+        for ticket in tickets:
+            ticket._check_name_description_duplicate()
+        
+        return tickets
 
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
@@ -309,8 +419,6 @@ class HelpdeskTicket(models.Model):
     )
     tsr_file = fields.Binary(string="TSR", attachment=True)
     tsr_filename = fields.Char("TSR Filename")
-    
-    noted= fields.Html(required=False, sanitize_style=True, tracking=True)
     time_start = fields.Datetime(string="Start", copy=False, tracking=True) 
     time_end = fields.Datetime(string="End", copy=False, tracking=True)
     
@@ -397,44 +505,6 @@ class HelpdeskTicket(models.Model):
                 if not self.employee_id and pic.employee_ids:
                     self.employee_id = pic.employee_ids[0].id
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            vals.update(self._prepare_ticket_number(vals))
-            
-            if not vals.get("employee_id"):
-                vals.update({"assigned_date": fields.Datetime.now()})
-            
-            if vals.get('partner_id') and not vals.get('assigned_employee_ids'):
-                pic = self.env['customer.pic'].search([
-                    ('partner_id', '=', vals.get('partner_id')),
-                    ('active', '=', True)
-                ], limit=1)
-                if pic and pic.employee_ids:
-                    vals['assigned_employee_ids'] = [(6, 0, pic.employee_ids.ids)]
-                    if not vals.get('employee_id') and pic.employee_ids:
-                        vals['employee_id'] = pic.employee_ids[0].id
-            
-            if not vals.get('stage_id'):
-                new_stage = self.env["helpdesk.ticket.stage"].search([
-                    ("name", "=", "New"),
-                    ("company_id", "in", [False, vals.get('company_id', self.env.company.id)])
-                ], limit=1)
-                if new_stage:
-                    vals['stage_id'] = new_stage.id
-            
-            stage_updates = self._get_stage_updates_from_time_create(vals)
-            if stage_updates:
-                vals.update(stage_updates)
-            
-        tickets = super().create(vals_list)
-        
-        # Create audit log for new tickets
-        for ticket in tickets:
-            self._create_audit_log(ticket, 'create', {}, ticket.read()[0])
-        
-        return tickets
-
     def copy(self, default=None):
         self.ensure_one()
         if default is None:
@@ -443,46 +513,6 @@ class HelpdeskTicket(models.Model):
             default["number"] = "/"
         res = super().copy(default)
         return res
-
-    def write(self, vals):
-        # Store original values for audit
-        original_values = {}
-        for ticket in self:
-            original_values[ticket.id] = ticket.read()[0]
-        
-        original_vals = vals.copy()
-        
-        stage_updates = self._get_stage_updates_from_time_write(vals)
-        
-        if stage_updates.get('stage_id') and not vals.get('stage_id'):
-            vals.update(stage_updates)
-            
-        for ticket in self:
-            now = fields.Datetime.now()
-            if vals.get("employee_id") and not ticket.employee_id:
-                vals["assigned_date"] = now
-            if vals.get("stage_id"):
-                vals["last_stage_update"] = now
-                stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
-                if stage.closed and not ticket.closed_date:
-                    vals["closed_date"] = now
-                    
-                    if not ticket.time_end and not original_vals.get('time_end'):
-                        vals['time_end'] = now
-            
-            if ticket.unattended and vals.get('stage_id'):
-                new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
-                if not new_stage.unattended and not ticket.time_start and not original_vals.get('time_start'):
-                    vals['time_start'] = now
-                    
-        result = super().write(vals)
-        
-        # Create audit log for changes
-        for ticket in self:
-            new_values = ticket.read()[0]
-            self._create_audit_log(ticket, 'write', original_values[ticket.id], new_values)
-        
-        return result
 
     def _prepare_ticket_number(self, values):
         seq = self.env["ir.sequence"]

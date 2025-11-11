@@ -9,7 +9,6 @@
         <field name="view_ids" eval="[(5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('helpdesk_ticket_view_tree_customer')})]"/>
         <field name="context">{
-            'create': False,
             'delete': False,
             'search_default_open': 1
         }</field>

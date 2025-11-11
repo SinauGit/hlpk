@@ -56,7 +56,7 @@
         <field name="domain_force">[('partner_id', '=', user.partner_id.commercial_partner_id.id)]</field>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="False"/>
-        <field name="perm_create" eval="False"/>
+        <field name="perm_create" eval="True"/>
         <field name="perm_unlink" eval="False"/>
     </record>
 
@@ -93,10 +93,10 @@
     </record>
 
     <!-- NEW: Rule untuk Audit Log - Customer tidak bisa lihat audit log -->
-    <record id="helpdesk_audit_log_rule_customer" model="ir.rule">
+    <!-- <record id="helpdesk_audit_log_rule_customer" model="ir.rule">
         <field name="name">Customer Cannot See Audit Log</field>
         <field name="model_id" ref="model_helpdesk_ticket_audit_log" />
         <field name="groups" eval="[(4, ref('group_helpdesk_customer'))]" />
         <field name="domain_force">[(0, '=', 1)]</field>
-    </record>
+    </record> -->
 </odoo>
