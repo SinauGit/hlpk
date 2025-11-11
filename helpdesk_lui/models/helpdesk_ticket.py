@@ -310,6 +310,62 @@ class HelpdeskTicket(models.Model):
         
         return tickets
 
+    def write(self, vals):
+        """Override write to ensure validation runs"""
+        # === LOGIC BARU: Auto-convert title_type to name if name is empty ===
+        if vals.get('title_type') and not vals.get('name'):
+            for record in self:
+                # Only auto-fill if current name is also empty
+                if not record.name:
+                    vals['name'] = self._get_title_type_label(vals['title_type'])
+                    break
+        
+        # === LOGIC LAMA: Store original values for audit ===
+        original_values = {}
+        for ticket in self:
+            original_values[ticket.id] = ticket.read()[0]
+        
+        original_vals = vals.copy()
+        
+        # === LOGIC LAMA: Stage updates from time ===
+        stage_updates = self._get_stage_updates_from_time_write(vals)
+        
+        if stage_updates.get('stage_id') and not vals.get('stage_id'):
+            vals.update(stage_updates)
+        
+        # === LOGIC LAMA: Update various fields based on conditions ===
+        for ticket in self:
+            now = fields.Datetime.now()
+            if vals.get("employee_id") and not ticket.employee_id:
+                vals["assigned_date"] = now
+            if vals.get("stage_id"):
+                vals["last_stage_update"] = now
+                stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
+                if stage.closed and not ticket.closed_date:
+                    vals["closed_date"] = now
+                    
+                    if not ticket.time_end and not original_vals.get('time_end'):
+                        vals['time_end'] = now
+            
+            if ticket.unattended and vals.get('stage_id'):
+                new_stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
+                if not new_stage.unattended and not ticket.time_start and not original_vals.get('time_start'):
+                    vals['time_start'] = now
+        
+        # === Execute parent write ===
+        result = super().write(vals)
+        
+        # === LOGIC LAMA: Create audit log for changes ===
+        for ticket in self:
+            new_values = ticket.read()[0]
+            self._create_audit_log(ticket, 'write', original_values[ticket.id], new_values)
+        
+        # === LOGIC BARU: Check duplicate validation ===
+        if 'name' in vals or 'description' in vals:
+            self._check_name_description_duplicate()
+        
+        return result
+
     employee_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Main Technical",
@@ -530,15 +586,49 @@ class HelpdeskTicket(models.Model):
         return True
         
     def action_view_ticket(self):
-        """Membuka tampilan tiket dari dashboard dengan filter yang sesuai."""
-        self.ensure_one()
-        action = self.env.ref('helpdesk_lui.helpdesk_ticket_action_form_readonly').sudo().read()[0]
+            """Membuka tampilan tiket dari dashboard dengan filter yang sesuai."""
+            self.ensure_one()
+            
+            # Cek apakah user adalah customer
+            if self.env.user.has_group('helpdesk_lui.group_helpdesk_customer'):
+                # Customer: gunakan action khusus customer
+                action = self.env.ref('helpdesk_lui.helpdesk_ticket_list_customer_action').sudo().read()[0]
+            else:
+                # Staff/Admin: gunakan action readonly seperti biasa
+                action = self.env.ref('helpdesk_lui.helpdesk_ticket_action_form_readonly').sudo().read()[0]
+            
+            context = self.env.context.copy()
+            action['context'] = context
+            
+            return action
+
+    @api.model
+    def action_customer_dashboard(self):
+        """Action untuk customer dashboard dengan domain yang sudah di-compute"""
+        # Get partner_id dari user yang login
+        current_user = self.env.user
+        partner_id = False
         
-        context = self.env.context.copy()
+        if current_user.partner_id:
+            partner_id = current_user.partner_id.commercial_partner_id.id if current_user.partner_id.commercial_partner_id else current_user.partner_id.id
         
-        action['context'] = context
+        # Build domain dengan partner_id yang sudah di-resolve
+        domain = []
+        if partner_id:
+            domain = [('partner_id', '=', partner_id)]
         
-        return action
+        # Return action dengan domain yang sudah di-compute
+        return {
+            'name': 'Dashboard',
+            'type': 'ir.actions.act_window',
+            'res_model': 'helpdesk.ticket',
+            'view_mode': 'kanban',
+            'view_id': self.env.ref('helpdesk_lui.helpdesk_dashboard_view_kanban').id,
+            'domain': domain,
+            'context': {
+                'create': False,
+            },
+        }
 
     def unlink(self):
         for ticket in self:

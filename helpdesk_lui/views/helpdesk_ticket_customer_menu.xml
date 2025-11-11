@@ -1,5 +1,15 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <odoo>
+    <!-- Server Action untuk Customer Dashboard -->
+    <record id="helpdesk_ticket_dashboard_customer_server_action" model="ir.actions.server">
+        <field name="name">Dashboard</field>
+        <field name="model_id" ref="model_helpdesk_ticket"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_customer_dashboard()
+        </field>
+    </record>
+
     <!-- Action untuk List Tickets Customer - HANYA TREE VIEW -->
     <record id="helpdesk_ticket_list_customer_action" model="ir.actions.act_window">
         <field name="name">My Tickets</field>
@@ -31,12 +41,12 @@
         web_icon="helpdesk_lui,static/description/icon.png"
     />
 
-    <!-- Dashboard Menu untuk Customer -->
+    <!-- Dashboard Menu untuk Customer - GUNAKAN SERVER ACTION -->
     <menuitem
         id="helpdesk_ticket_customer_dashboard_menu"
         name="Dashboard"
         parent="helpdesk_ticket_customer_main_menu"
-        action="helpdesk_ticket_dashboard_action"
+        action="helpdesk_ticket_dashboard_customer_server_action"
         sequence="2"
     />
 

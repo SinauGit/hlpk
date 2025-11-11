@@ -127,7 +127,8 @@
                     <field name="stage_id" optional="show" decoration-bf="1"
                         decoration-success="is_stage_done"
                         decoration-info="stage_id and not closed and not is_stage_done"
-                        attrs="{'readonly': [('checkbox', '=', True)]}"/>
+                        attrs="{'readonly': [('checkbox', '=', True)]}" 
+                        options="{'no_open': True}"/>
 
                     <field name="report_by" decoration-bf="1" optional="hide" />
                     <field name="upload_ba" filename="upload_ba_filename" widget="binary"
@@ -156,7 +157,6 @@
             <field name="arch" type="xml">
                 <tree editable="top" delete="0">
                     <field name="is_stage_done" invisible="1" decoration-bf="1"/>
-                    <field name="is_due_date_red" invisible="1" decoration-bf="1"/>
                     <field name="closed" invisible="1" decoration-bf="1"/>
                     <field name="title_type" string ="Title" decoration-bf="1" 
                     attrs="{'readonly': [('id', '!=', False)]}"/>
