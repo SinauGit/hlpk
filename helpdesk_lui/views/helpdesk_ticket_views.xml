@@ -160,19 +160,19 @@
                     <field name="closed" invisible="1" decoration-bf="1"/>
                     <field name="title_type" string ="Title" decoration-bf="1" 
                     attrs="{'readonly': [('id', '!=', False)]}"/>
-                    <field name="report_by" decoration-bf="1" optional="hide" 
+                    <field name="report_by" decoration-bf="1" optional="show" 
                         attrs="{'readonly': [('id', '!=', False)]}"/>
 
                     <field name="upload_ba" filename="upload_ba_filename" widget="binary"
-                        decoration-bf="1" optional="hide"
+                        decoration-bf="1" optional="show"
                         attrs="{'readonly': [('id', '!=', False)]}"/>
 
                     <field name="upload_ba_filename" invisible="1"/>
 
-                    <field name="report_date" decoration-bf="1" optional="hide"
+                    <field name="report_date" decoration-bf="1" optional="show"
                         attrs="{'readonly': [('id', '!=', False)]}"/>
 
-                    <field name="bank" decoration-bf="1" optional="hide"
+                    <field name="bank" decoration-bf="1" optional="show"
                         attrs="{'readonly': [('id', '!=', False)]}"/>
                     <field name="assigned_employee_ids" widget="many2many_tags" optional="show"
                         decoration-bf="1" decoration-muted="1" readonly="1"/>
